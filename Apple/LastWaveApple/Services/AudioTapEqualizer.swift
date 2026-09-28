@@ -4,8 +4,10 @@ import Foundation
 /// Real-time 15-band parametric EQ for AVPlayer. It runs inside an
 /// MTAudioProcessingTap, so the same DSP applies to local files and streams.
 enum AudioTapEqualizer {
+    private static let frequencies: [Float] = [25,40,63,100,160,250,400,630,1000,1600,2500,4000,6300,10000,16000]
+
     static func makeMix(gains: [Float]) -> AVAudioMix? {
-        guard gains.count == EqualizerStore.frequencies.count else { return nil }
+        guard gains.count == frequencies.count else { return nil }
         let context = EQTapContext(gains: gains)
         var callbacks = MTAudioProcessingTapCallbacks(
             version: kMTAudioProcessingTapCallbacksVersion_0,
@@ -30,6 +32,7 @@ enum AudioTapEqualizer {
 }
 
 private final class EQTapContext {
+    private static let frequencies: [Float] = [25,40,63,100,160,250,400,630,1000,1600,2500,4000,6300,10000,16000]
     let gains: [Float]
     var sampleRate: Float = 44_100
     var channelStates: [[[Float]]] = [] // channel → band → [x1,x2,y1,y2]
@@ -41,7 +44,7 @@ private final class EQTapContext {
     func process(_ samples: UnsafeMutablePointer<Float>, count: Int, channel: Int) {
         guard channelStates.indices.contains(channel) else { return }
         for band in gains.indices where abs(gains[band]) > 0.01 {
-            let frequency = min(EqualizerStore.frequencies[band], sampleRate * 0.45)
+            let frequency = min(Self.frequencies[band], sampleRate * 0.45)
             let a = powf(10, gains[band] / 40)
             let omega = 2 * Float.pi * frequency / sampleRate
             let alpha = sinf(omega) / (2 * 1.15)
@@ -63,18 +66,19 @@ private final class EQTapContext {
 
 private let eqTapInit: MTAudioProcessingTapInitCallback = { _, clientInfo, storageOut in storageOut.pointee = clientInfo }
 private let eqTapFinalize: MTAudioProcessingTapFinalizeCallback = { tap in
-    guard let storage = MTAudioProcessingTapGetStorage(tap) else { return }
+    let storage = MTAudioProcessingTapGetStorage(tap)
     Unmanaged<EQTapContext>.fromOpaque(storage).release()
 }
 private let eqTapPrepare: MTAudioProcessingTapPrepareCallback = { tap, _, format in
-    guard let storage = MTAudioProcessingTapGetStorage(tap) else { return }
+    let storage = MTAudioProcessingTapGetStorage(tap)
     let context = Unmanaged<EQTapContext>.fromOpaque(storage).takeUnretainedValue()
     context.prepare(channels: Int(format.pointee.mChannelsPerFrame), sampleRate: Float(format.pointee.mSampleRate))
 }
 private let eqTapUnprepare: MTAudioProcessingTapUnprepareCallback = { _ in }
 private let eqTapProcess: MTAudioProcessingTapProcessCallback = { tap, frameCount, _, bufferList, framesOut, flagsOut in
     let status = MTAudioProcessingTapGetSourceAudio(tap, frameCount, bufferList, flagsOut, nil, framesOut)
-    guard status == noErr, let storage = MTAudioProcessingTapGetStorage(tap) else { return }
+    guard status == noErr else { return }
+    let storage = MTAudioProcessingTapGetStorage(tap)
     let context = Unmanaged<EQTapContext>.fromOpaque(storage).takeUnretainedValue()
     let buffers = UnsafeMutableAudioBufferListPointer(bufferList)
     for (channel, buffer) in buffers.enumerated() {
