@@ -56,6 +56,7 @@ actor YouTubeMusicService {
 
     func resolve(_ track: CatalogTrack) async throws -> ResolvedAudioStream {
         if let piped = await resolveWithPiped(track.videoID) { return piped }
+        let playerScript = try? await YouTubeChallengeSolver.shared.currentPlayer()
         let clients: [(String, Int, String, String, String, [String: Any])] = [
             ("VISIONOS", 101, "0.1", "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", "Mozilla/5.0 (Apple Vision; CPU OS 1_3 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15", ["osName":"visionOS", "osVersion":"1.3.21O771", "deviceMake":"Apple", "deviceModel":"RealityDevice14,1"]),
             ("ANDROID_VR", 28, "1.65.10", "AIzaSyD-p045F_WzU-vA_YgX20SCx4KAo", "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip", ["osName":"Android", "osVersion":"12", "deviceMake":"Oculus", "deviceModel":"Quest 3", "androidSdkVersion":32]),
@@ -69,16 +70,20 @@ actor YouTubeMusicService {
             extras.forEach { client[$0] = $1 }
             var context: [String: Any] = ["client": client]
             if name.contains("EMBEDDED") { context["thirdParty"] = ["embedUrl": "https://www.youtube.com/embed/\(track.videoID)"] }
+            var playbackContext: [String: Any] = ["html5Preference": "HTML5_PREF_WANTS"]
+            if let timestamp = playerScript?.signatureTimestamp { playbackContext["signatureTimestamp"] = timestamp }
             let body: [String: Any] = ["context": context, "videoId": track.videoID,
                                        "contentCheckOk": true, "racyCheckOk": true,
-                                       "playbackContext": ["contentPlaybackContext": ["html5Preference": "HTML5_PREF_WANTS"]]]
+                                       "playbackContext": ["contentPlaybackContext": playbackContext]]
             let origin = name.contains("TVHTML5") ? "https://www.youtube.com" : "https://www.youtube.com"
             let requestHeaders = ["User-Agent": userAgent, "Origin": origin,
                                   "Referer": name.contains("EMBEDDED") ? "https://www.youtube.com/embed/\(track.videoID)" : "https://www.youtube.com/",
                                   "X-YouTube-Client-Name": String(id), "X-YouTube-Client-Version": version]
             if let json = try? await postJSON("https://www.youtube.com/youtubei/v1/player?key=\(key)", body: body,
                                               headers: requestHeaders),
-               let stream = bestAudio(in: json, headers: requestHeaders) { return stream }
+               let stream = try? await bestAudio(in: json, headers: requestHeaders, player: playerScript) {
+                return stream
+            }
         }
         throw MusicServiceError.noPlayableStream
     }
@@ -147,7 +152,15 @@ actor YouTubeMusicService {
         var request = URLRequest(url: url); request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        headers.forEach { request.setValue($1, forHTTPHeaderField: $0) }
+        var allHeaders = headers
+        if let activeSession = await MainActor.run(body: { YouTubeSessionStore.shared.session }) {
+            allHeaders["Cookie"] = activeSession.cookie
+            allHeaders["X-Goog-AuthUser"] = activeSession.authUser
+            if let visitorData = activeSession.visitorData { allHeaders["X-Goog-Visitor-Id"] = visitorData }
+            let origin = allHeaders["Origin"] ?? "https://music.youtube.com"
+            if let authorization = activeSession.authorization(origin: origin) { allHeaders["Authorization"] = authorization }
+        }
+        allHeaders.forEach { request.setValue($1, forHTTPHeaderField: $0) }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await session.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw MusicServiceError.badResponse }
@@ -185,12 +198,13 @@ actor YouTubeMusicService {
         }
         walk(value); return urls.max(by: { $0.1 < $1.1 })?.0
     }
-    private func bestAudio(in json: Any, headers: [String: String]) -> ResolvedAudioStream? {
+    private func bestAudio(in json: Any, headers: [String: String], player: YouTubePlayerScript?) async throws -> ResolvedAudioStream? {
         guard let root = json as? [String: Any], let streaming = root["streamingData"] as? [String: Any] else { return nil }
         let formats = (streaming["adaptiveFormats"] as? [[String: Any]] ?? []) + (streaming["formats"] as? [[String: Any]] ?? [])
-        let audio = formats.filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true && $0["url"] is String }
-        if let best = audio.max(by: { ($0["bitrate"] as? Int ?? 0) < ($1["bitrate"] as? Int ?? 0) }),
-           let raw = best["url"] as? String, let url = URL(string: raw) {
+        let audio = formats.filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true }
+            .sorted { ($0["bitrate"] as? Int ?? 0) > ($1["bitrate"] as? Int ?? 0) }
+        for best in audio {
+            guard let url = try await playableURL(from: best, player: player) else { continue }
             let mime = best["mimeType"] as? String
             return ResolvedAudioStream(url: url, quality: "YouTube \((best["bitrate"] as? Int ?? 0) / 1000) kbps",
                                        codec: mime, sampleRate: Int(best["audioSampleRate"] as? String ?? ""), bitDepth: nil,
@@ -199,6 +213,36 @@ actor YouTubeMusicService {
         guard let rawHLS = streaming["hlsManifestUrl"] as? String, let hlsURL = URL(string: rawHLS) else { return nil }
         return ResolvedAudioStream(url: hlsURL, quality: "YouTube HLS", codec: "HLS", sampleRate: nil, bitDepth: nil,
                                    headers: headers)
+    }
+
+    private func playableURL(from format: [String: Any], player: YouTubePlayerScript?) async throws -> URL? {
+        var components: URLComponents?
+        var encryptedSignature: String?
+        var signatureParameter = "signature"
+        if let raw = format["url"] as? String {
+            components = URLComponents(string: raw)
+        } else if let cipher = format["signatureCipher"] as? String ?? format["cipher"] as? String {
+            let fields = URLComponents(string: "https://local.invalid/?\(cipher)")?.queryItems ?? []
+            let value: (String) -> String? = { name in fields.first(where: { $0.name == name })?.value }
+            guard let raw = value("url") else { return nil }
+            components = URLComponents(string: raw)
+            encryptedSignature = value("s")
+            signatureParameter = value("sp") ?? "signature"
+        }
+        guard var components else { return nil }
+        let throttling = components.queryItems?.first(where: { $0.name == "n" })?.value
+        if encryptedSignature != nil || throttling != nil {
+            guard let player else { return nil }
+            let solved = try await YouTubeChallengeSolver.shared.solve(signature: encryptedSignature,
+                                                                        throttling: throttling,
+                                                                        using: player)
+            var items = components.queryItems ?? []
+            if let answer = solved.signature { items.append(URLQueryItem(name: signatureParameter, value: answer)) }
+            if let answer = solved.throttling,
+               let index = items.firstIndex(where: { $0.name == "n" }) { items[index].value = answer }
+            components.queryItems = items
+        }
+        return components.url
     }
     private func parseDuration(_ text: String) -> Int? {
         let parts = text.split(separator: ":").compactMap { Int($0) }; guard parts.count == 2 || parts.count == 3 else { return nil }

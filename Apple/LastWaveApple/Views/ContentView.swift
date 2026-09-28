@@ -279,6 +279,8 @@ private struct SettingsView: View {
     @AppStorage("lossless.addonURL") private var addonURL = ""
     @AppStorage("lossless.addonSecret") private var addonSecret = ""
     @AppStorage("lossless.quality") private var losslessQuality = "lossless"
+    @ObservedObject private var youtubeSession = YouTubeSessionStore.shared
+    @State private var showYouTubeLogin = false
 
     var body: some View {
         NavigationStack {
@@ -294,6 +296,16 @@ private struct SettingsView: View {
                     LabeledContent("Songs", value: "\(library.tracks.count)")
                     LabeledContent("Favourites", value: "\(library.favorites.count)")
                     LabeledContent("Playlists", value: "\(library.playlists.count)")
+                }
+                Section("YouTube Music") {
+                    LabeledContent("Account", value: youtubeSession.isConnected ? "Connected" : "Not connected")
+                    if youtubeSession.isConnected {
+                        Button("Disconnect", role: .destructive) { youtubeSession.disconnect() }
+                    } else {
+                        Button("Connect with Google") { showYouTubeLogin = true }
+                    }
+                    Text("Connecting allows LastWave to request playable YouTube Music audio using your own session. Your cookies stay encrypted in this device's Keychain.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Lossless audio") {
                     TextField("Addon server URL", text: $addonURL)
@@ -323,6 +335,7 @@ private struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .sheet(isPresented: $showYouTubeLogin) { YouTubeLoginView() }
         }
     }
 }
