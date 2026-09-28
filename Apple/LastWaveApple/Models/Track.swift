@@ -54,6 +54,7 @@ struct ResolvedAudioStream: Sendable {
     let codec: String?
     let sampleRate: Int?
     let bitDepth: Int?
+    var headers: [String: String] = [:]
 }
 
 struct Playlist: Codable, Identifiable, Hashable, Sendable {

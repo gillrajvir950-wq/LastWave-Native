@@ -58,16 +58,26 @@ actor YouTubeMusicService {
         let clients: [(String, Int, String, String, String, [String: Any])] = [
             ("VISIONOS", 101, "0.1", "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", "Mozilla/5.0 (Apple Vision; CPU OS 1_3 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15", ["osName":"visionOS", "osVersion":"1.3.21O771", "deviceMake":"Apple", "deviceModel":"RealityDevice14,1"]),
             ("ANDROID_VR", 28, "1.65.10", "AIzaSyD-p045F_WzU-vA_YgX20SCx4KAo", "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip", ["osName":"Android", "osVersion":"12", "deviceMake":"Oculus", "deviceModel":"Quest 3", "androidSdkVersion":32]),
-            ("TVHTML5", 7, "7.20260308.08.00", "AIzaSyAO_FJ2SlqAz8GlBg1fA54p0wDE7Xk80mU", "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version", [:])
+            ("TVHTML5", 7, "7.20260308.08.00", "AIzaSyAO_FJ2SlqAz8GlBg1fA54p0wDE7Xk80mU", "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 TV Safari/537.36", [:]),
+            ("IOS_MUSIC", 26, "7.27.0", "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", "com.google.ios.youtubemusic/7.27.0 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)", ["osName":"iOS", "osVersion":"17.5.1.21F90", "deviceMake":"Apple", "deviceModel":"iPhone16,2"]),
+            ("ANDROID_TESTSUITE", 30, "1.9", "AIzaSyD-p045F_WzU-vA_YgX20SCx4KAo", "com.google.android.youtube/1.9 (Linux; U; Android 12) gzip", ["osName":"Android", "osVersion":"12"]),
+            ("TVHTML5_SIMPLY_EMBEDDED_PLAYER", 85, "2.0", "AIzaSyAO_FJ2SlqAz8GlBg1fA54p0wDE7Xk80mU", "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 TV Safari/537.36", [:])
         ]
         for (name, id, version, key, userAgent, extras) in clients {
-            var client: [String: Any] = ["clientName": name, "clientVersion": version, "clientNameId": id, "hl":"en", "gl":"US"]
+            var client: [String: Any] = ["clientName": name, "clientVersion": version, "hl":"en", "gl":"US"]
             extras.forEach { client[$0] = $1 }
-            let body: [String: Any] = ["context": ["client": client], "videoId": track.videoID,
-                                       "contentCheckOk": true, "racyCheckOk": true]
+            var context: [String: Any] = ["client": client]
+            if name.contains("EMBEDDED") { context["thirdParty"] = ["embedUrl": "https://www.youtube.com/embed/\(track.videoID)"] }
+            let body: [String: Any] = ["context": context, "videoId": track.videoID,
+                                       "contentCheckOk": true, "racyCheckOk": true,
+                                       "playbackContext": ["contentPlaybackContext": ["html5Preference": "HTML5_PREF_WANTS"]]]
+            let origin = name.contains("TVHTML5") ? "https://www.youtube.com" : "https://www.youtube.com"
+            let requestHeaders = ["User-Agent": userAgent, "Origin": origin,
+                                  "Referer": name.contains("EMBEDDED") ? "https://www.youtube.com/embed/\(track.videoID)" : "https://www.youtube.com/",
+                                  "X-YouTube-Client-Name": String(id), "X-YouTube-Client-Version": version]
             if let json = try? await postJSON("https://www.youtube.com/youtubei/v1/player?key=\(key)", body: body,
-                                              headers: ["User-Agent": userAgent, "Origin": "https://www.youtube.com"]),
-               let stream = bestAudio(in: json) { return stream }
+                                              headers: requestHeaders),
+               let stream = bestAudio(in: json, headers: requestHeaders) { return stream }
         }
         throw MusicServiceError.noPlayableStream
     }
@@ -123,15 +133,20 @@ actor YouTubeMusicService {
         }
         walk(value); return urls.max(by: { $0.1 < $1.1 })?.0
     }
-    private func bestAudio(in json: Any) -> ResolvedAudioStream? {
+    private func bestAudio(in json: Any, headers: [String: String]) -> ResolvedAudioStream? {
         guard let root = json as? [String: Any], let streaming = root["streamingData"] as? [String: Any] else { return nil }
         let formats = (streaming["adaptiveFormats"] as? [[String: Any]] ?? []) + (streaming["formats"] as? [[String: Any]] ?? [])
         let audio = formats.filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true && $0["url"] is String }
-        guard let best = audio.max(by: { ($0["bitrate"] as? Int ?? 0) < ($1["bitrate"] as? Int ?? 0) }),
-              let raw = best["url"] as? String, let url = URL(string: raw) else { return nil }
-        let mime = best["mimeType"] as? String
-        return ResolvedAudioStream(url: url, quality: "YouTube \((best["bitrate"] as? Int ?? 0) / 1000) kbps",
-                                   codec: mime, sampleRate: Int(best["audioSampleRate"] as? String ?? ""), bitDepth: nil)
+        if let best = audio.max(by: { ($0["bitrate"] as? Int ?? 0) < ($1["bitrate"] as? Int ?? 0) }),
+           let raw = best["url"] as? String, let url = URL(string: raw) {
+            let mime = best["mimeType"] as? String
+            return ResolvedAudioStream(url: url, quality: "YouTube \((best["bitrate"] as? Int ?? 0) / 1000) kbps",
+                                       codec: mime, sampleRate: Int(best["audioSampleRate"] as? String ?? ""), bitDepth: nil,
+                                       headers: headers)
+        }
+        guard let rawHLS = streaming["hlsManifestUrl"] as? String, let hlsURL = URL(string: rawHLS) else { return nil }
+        return ResolvedAudioStream(url: hlsURL, quality: "YouTube HLS", codec: "HLS", sampleRate: nil, bitDepth: nil,
+                                   headers: headers)
     }
     private func parseDuration(_ text: String) -> Int? {
         let parts = text.split(separator: ":").compactMap { Int($0) }; guard parts.count == 2 || parts.count == 3 else { return nil }

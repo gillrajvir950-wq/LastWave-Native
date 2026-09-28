@@ -78,7 +78,7 @@ final class PlayerStore: ObservableObject {
             if stream == nil { stream = try await YouTubeMusicService.shared.resolve(catalog) }
             guard let stream else { throw MusicServiceError.noPlayableStream }
             var track = catalog.playbackTrack; track.sourceQuality = stream.quality
-            loadRemote(track, url: stream.url, autoplay: true)
+            loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -172,11 +172,11 @@ final class PlayerStore: ObservableObject {
         loadPlayer(track, item: AVPlayerItem(url: url), autoplay: autoplay, position: position)
     }
 
-    private func loadRemote(_ track: Track, url: URL, autoplay: Bool) {
+    private func loadRemote(_ track: Track, url: URL, headers: [String: String], autoplay: Bool) {
         clearObservers()
-        var request = URLRequest(url: url)
-        request.setValue("LastWave-Player/1.0", forHTTPHeaderField: "User-Agent")
-        let asset = AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": request.allHTTPHeaderFields ?? [:]])
+        var requestHeaders = headers
+        if requestHeaders["User-Agent"] == nil { requestHeaders["User-Agent"] = "Mozilla/5.0" }
+        let asset = AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": requestHeaders])
         loadPlayer(track, item: AVPlayerItem(asset: asset), autoplay: autoplay, position: 0)
     }
 

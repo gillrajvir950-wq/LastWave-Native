@@ -12,20 +12,26 @@ struct ContentView: View {
     @EnvironmentObject private var player: PlayerStore
     @State private var showImporter = false
     @State private var showPlayer = false
+    @State private var selectedTab = 0
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             LibraryView(showImporter: $showImporter)
+                .tag(0)
                 .tabItem { Label("Library", systemImage: "music.note.list") }
             OnlineSearchView()
+                .tag(1)
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
             TrackCollectionView(title: "Favourites", tracks: library.favorites, emptyIcon: "heart",
                                 emptyMessage: "Songs you favourite appear here.")
                 .tabItem { Label("Favourites", systemImage: "heart.fill") }
+                .tag(2)
             PlaylistsView()
                 .tabItem { Label("Playlists", systemImage: "music.note.list") }
+                .tag(3)
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(4)
         }
         .safeAreaInset(edge: .bottom) {
             if player.current != nil { MiniPlayer(showPlayer: $showPlayer) }
@@ -46,6 +52,13 @@ struct ContentView: View {
             Text(library.errorMessage ?? player.errorMessage ?? library.noticeMessage ?? "")
         }
         .task { player.restore(from: library) }
+        .onChange(of: selectedTab) { _, _ in dismissKeyboard() }
+    }
+
+    private func dismissKeyboard() {
+        #if os(iOS)
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        #endif
     }
 }
 
@@ -55,6 +68,7 @@ private struct OnlineSearchView: View {
     @State private var results: [CatalogTrack] = []
     @State private var searching = false
     @State private var error: String?
+    @State private var searchPresented = false
 
     var body: some View {
         NavigationStack {
@@ -79,13 +93,14 @@ private struct OnlineSearchView: View {
                 } }
             }
             .navigationTitle("Search")
-            .searchable(text: $query, prompt: "Songs, artists, albums")
+            .searchable(text: $query, isPresented: $searchPresented, prompt: "Songs, artists, albums")
+            .scrollDismissesKeyboard(.interactively)
             .onSubmit(of: .search) { runSearch() }
             .toolbar { Button("Search", systemImage: "magnifyingglass") { runSearch() }.disabled(query.trimmingCharacters(in: .whitespaces).isEmpty) }
         }
     }
     private func runSearch() {
-        searching = true; error = nil
+        searching = true; error = nil; searchPresented = false
         Task { do { results = try await YouTubeMusicService.shared.search(query) } catch { self.error = error.localizedDescription }; searching = false }
     }
 }
