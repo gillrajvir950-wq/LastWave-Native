@@ -50,6 +50,7 @@ private struct PlayerWebView: UIViewRepresentable {
         view.configuration.userContentController.removeScriptMessageHandler(forName: "lastWave")
         view.stopLoading()
     }
+}
 #elseif os(macOS)
 private struct PlayerWebView: NSViewRepresentable {
     let videoID: String
@@ -75,6 +76,7 @@ private struct PlayerWebView: NSViewRepresentable {
         view.configuration.userContentController.removeScriptMessageHandler(forName: "lastWave")
         view.stopLoading()
     }
+}
 #endif
 
 private final class Coordinator: NSObject, WKScriptMessageHandler {

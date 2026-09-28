@@ -68,36 +68,32 @@ final class PlayerStore: ObservableObject {
     func playOnline(_ catalog: CatalogTrack) async {
         isLoading = true; errorMessage = nil
         defer { isLoading = false }
-        do {
-            let defaults = UserDefaults.standard
-            let addonURL = defaults.string(forKey: "lossless.addonURL") ?? ""
-            let addonSecret = defaults.string(forKey: "lossless.addonSecret") ?? ""
-            let preference = defaults.string(forKey: "lossless.quality") ?? "lossless"
-            var stream: ResolvedAudioStream?
-            if !addonURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                stream = try? await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
-                                                                        secret: addonSecret, quality: preference)
-            }
-            if stream == nil {
-                stream = await withTaskGroup(of: ResolvedAudioStream?.self) { group in
-                    group.addTask { try? await YouTubeMusicService.shared.resolve(catalog) }
-                    group.addTask {
-                        try? await Task.sleep(for: .seconds(6))
-                        return nil
-                    }
-                    let first = await group.next() ?? nil
-                    group.cancelAll()
-                    return first
+        let defaults = UserDefaults.standard
+        let addonURL = defaults.string(forKey: "lossless.addonURL") ?? ""
+        let addonSecret = defaults.string(forKey: "lossless.addonSecret") ?? ""
+        let preference = defaults.string(forKey: "lossless.quality") ?? "lossless"
+        var stream: ResolvedAudioStream?
+        if !addonURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            stream = try? await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
+                                                                    secret: addonSecret, quality: preference)
+        }
+        if stream == nil {
+            stream = await withTaskGroup(of: ResolvedAudioStream?.self) { group in
+                group.addTask { try? await YouTubeMusicService.shared.resolve(catalog) }
+                group.addTask {
+                    try? await Task.sleep(for: .seconds(6))
+                    return nil
                 }
+                let first = await group.next() ?? nil
+                group.cancelAll()
+                return first
             }
-            if let stream {
-                var track = catalog.playbackTrack; track.sourceQuality = stream.quality
-                loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
-            } else {
-                loadWebPlayer(catalog)
-            }
-        } catch {
-            // Direct stream providers change frequently. The official embedded
+        }
+        if let stream {
+            var track = catalog.playbackTrack; track.sourceQuality = stream.quality
+            loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
+        } else {
+            // Public resolver services change frequently. The official embedded
             // player is the reliable last resort and needs no resolver server.
             loadWebPlayer(catalog)
         }
