@@ -55,6 +55,7 @@ actor YouTubeMusicService {
     }
 
     func resolve(_ track: CatalogTrack) async throws -> ResolvedAudioStream {
+        if let piped = await resolveWithPiped(track.videoID) { return piped }
         let clients: [(String, Int, String, String, String, [String: Any])] = [
             ("VISIONOS", 101, "0.1", "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", "Mozilla/5.0 (Apple Vision; CPU OS 1_3 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15", ["osName":"visionOS", "osVersion":"1.3.21O771", "deviceMake":"Apple", "deviceModel":"RealityDevice14,1"]),
             ("ANDROID_VR", 28, "1.65.10", "AIzaSyD-p045F_WzU-vA_YgX20SCx4KAo", "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip", ["osName":"Android", "osVersion":"12", "deviceMake":"Oculus", "deviceModel":"Quest 3", "androidSdkVersion":32]),
@@ -80,6 +81,57 @@ actor YouTubeMusicService {
                let stream = bestAudio(in: json, headers: requestHeaders) { return stream }
         }
         throw MusicServiceError.noPlayableStream
+    }
+
+    /// Public Piped APIs perform the player-JavaScript deciphering that raw
+    /// InnerTube responses increasingly require. Race several documented
+    /// instances so one unavailable host does not block playback.
+    private func resolveWithPiped(_ videoID: String) async -> ResolvedAudioStream? {
+        let instances = [
+            "https://pipedapi.leptons.xyz",
+            "https://pipedapi.kavin.rocks",
+            "https://pipedapi.nosebs.ru"
+        ]
+        return await withTaskGroup(of: ResolvedAudioStream?.self) { group in
+            for base in instances {
+                group.addTask { await Self.pipedStream(videoID: videoID, base: base) }
+            }
+            for await candidate in group {
+                if let candidate { group.cancelAll(); return candidate }
+            }
+            return nil
+        }
+    }
+
+    private nonisolated static func pipedStream(videoID: String, base: String) async -> ResolvedAudioStream? {
+        guard let url = URL(string: "\(base)/streams/\(videoID)") else { return nil }
+        var request = URLRequest(url: url); request.timeoutInterval = 8
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("LastWave-Apple/0.6", forHTTPHeaderField: "User-Agent")
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let status = response as? HTTPURLResponse, (200..<300).contains(status.statusCode),
+              let object = try? JSONSerialization.jsonObject(with: data),
+              let root = object as? [String: Any],
+              let streams = root["audioStreams"] as? [[String: Any]] else { return nil }
+        let usable = streams.filter { item in
+            guard let raw = item["url"] as? String, URL(string: raw) != nil else { return false }
+            return item["videoOnly"] as? Bool != true
+        }
+        guard let best = usable.max(by: { Self.number($0["bitrate"]) < Self.number($1["bitrate"]) }),
+              let raw = best["url"] as? String, let streamURL = URL(string: raw) else { return nil }
+        let bitrate = Self.number(best["bitrate"])
+        let codec = best["codec"] as? String ?? best["format"] as? String ?? best["mimeType"] as? String
+        return ResolvedAudioStream(url: streamURL,
+                                   quality: bitrate > 0 ? "Online \(bitrate / 1000) kbps" : "Online audio",
+                                   codec: codec, sampleRate: nil, bitDepth: nil,
+                                   headers: ["User-Agent": "Mozilla/5.0", "Referer": "\(base)/"])
+    }
+
+    private nonisolated static func number(_ value: Any?) -> Int {
+        if let value = value as? Int { return value }
+        if let value = value as? NSNumber { return value.intValue }
+        if let value = value as? String { return Int(value) ?? 0 }
+        return 0
     }
 
     private func bootstrap() async {

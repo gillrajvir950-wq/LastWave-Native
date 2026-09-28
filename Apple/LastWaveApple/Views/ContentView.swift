@@ -69,6 +69,7 @@ private struct OnlineSearchView: View {
     @State private var searching = false
     @State private var error: String?
     @State private var searchPresented = false
+    @State private var loadingID: String?
 
     var body: some View {
         NavigationStack {
@@ -77,7 +78,10 @@ private struct OnlineSearchView: View {
                 else if let error { ContentUnavailableView("Search failed", systemImage: "wifi.exclamationmark", description: Text(error)) }
                 else if results.isEmpty { ContentUnavailableView("Search music", systemImage: "waveform", description: Text("Find songs from the online music catalogue.")) }
                 else { ForEach(results) { song in
-                    Button { Task { await player.playOnline(song) } } label: {
+                    Button {
+                        loadingID = song.id
+                        Task { await player.playOnline(song); loadingID = nil }
+                    } label: {
                         HStack(spacing: 12) {
                             RemoteArtwork(url: song.artworkURL, size: 50)
                             VStack(alignment: .leading, spacing: 3) {
@@ -86,7 +90,7 @@ private struct OnlineSearchView: View {
                                     .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                             }
                             Spacer()
-                            if player.isLoading { ProgressView().controlSize(.small) }
+                            if loadingID == song.id { ProgressView().controlSize(.small) }
                             else { Image(systemName: "play.circle.fill").font(.title2).foregroundStyle(.tint) }
                         }
                     }.buttonStyle(.plain)
