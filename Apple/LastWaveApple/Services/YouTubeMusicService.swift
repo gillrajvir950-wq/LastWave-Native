@@ -26,6 +26,38 @@ actor YouTubeMusicService {
         session = URLSession(configuration: config)
     }
 
+    func home() async throws -> [CatalogShelf] {
+        await bootstrap()
+        let body: [String: Any] = [
+            "context": ["client": ["clientName": "WEB_REMIX", "clientVersion": webVersion,
+                                    "hl": "en", "gl": "US"]],
+            "browseId": "FEmusic_home"
+        ]
+        let json = try await postJSON("https://music.youtube.com/youtubei/v1/browse?key=\(webKey)",
+                                      body: body,
+                                      headers: ["Origin": "https://music.youtube.com",
+                                                "Referer": "https://music.youtube.com/"])
+        var output: [CatalogShelf] = []
+        var carousels: [[String: Any]] = []
+        collect(key: "musicCarouselShelfRenderer", in: json, into: &carousels)
+        for shelf in carousels {
+            let title = shelfTitle(in: shelf) ?? "Made for you"
+            let tracks = shelfTracks(in: shelf)
+            if !tracks.isEmpty { output.append(CatalogShelf(title: title, tracks: tracks)) }
+        }
+        var shelves: [[String: Any]] = []
+        collect(key: "musicShelfRenderer", in: json, into: &shelves)
+        for shelf in shelves {
+            let title = shelfTitle(in: shelf) ?? "Quick picks"
+            let tracks = shelfTracks(in: shelf)
+            if !tracks.isEmpty, !output.contains(where: { $0.title == title }) {
+                output.append(CatalogShelf(title: title, tracks: tracks))
+            }
+        }
+        if output.isEmpty { throw MusicServiceError.noResults }
+        return Array(output.prefix(12))
+    }
+
     func search(_ query: String) async throws -> [CatalogTrack] {
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return [] }
@@ -197,6 +229,59 @@ actor YouTubeMusicService {
             } else if let array = item as? [Any] { array.forEach(walk) }
         }
         walk(value); return urls.max(by: { $0.1 < $1.1 })?.0
+    }
+
+    private func shelfTitle(in shelf: [String: Any]) -> String? {
+        if let header = shelf["header"] as? [String: Any] {
+            var runsFound: [[String: Any]] = []
+            collectRuns(in: header, into: &runsFound)
+            if let text = runsFound.compactMap({ $0["text"] as? String }).first(where: { !$0.isEmpty }) {
+                return text
+            }
+        }
+        if let title = shelf["title"] as? [String: Any],
+           let runs = title["runs"] as? [[String: Any]] { return runs.first?["text"] as? String }
+        return nil
+    }
+
+    private func shelfTracks(in shelf: [String: Any]) -> [CatalogTrack] {
+        guard let contents = shelf["contents"] as? [Any] else { return [] }
+        var seen = Set<String>()
+        return contents.compactMap { item in
+            let renderer: [String: Any]
+            if let object = item as? [String: Any], let twoRow = object["musicTwoRowItemRenderer"] as? [String: Any] {
+                renderer = twoRow
+            } else if let object = item as? [String: Any], let responsive = object["musicResponsiveListItemRenderer"] as? [String: Any] {
+                renderer = responsive
+            } else { return nil }
+            guard let videoID = firstVideoID(in: renderer), seen.insert(videoID).inserted else { return nil }
+            let title: String
+            if let titleObject = renderer["title"] as? [String: Any],
+               let titleRuns = titleObject["runs"] as? [[String: Any]],
+               let value = titleRuns.first?["text"] as? String { title = value }
+            else {
+                let columns = renderer["flexColumns"] as? [[String: Any]] ?? []
+                title = runs(in: columns.first).first?["text"] as? String ?? "Song"
+            }
+            var allRuns: [[String: Any]] = []
+            collectRuns(in: renderer, into: &allRuns)
+            let artist = allRuns.first(where: { browseID($0)?.hasPrefix("UC") == true })?["text"] as? String
+                ?? allRuns.dropFirst().compactMap { $0["text"] as? String }.first(where: { !$0.isEmpty && $0 != title })
+                ?? "YouTube Music"
+            let album = allRuns.first(where: { browseID($0)?.hasPrefix("MPRE") == true })?["text"] as? String ?? ""
+            let duration = allRuns.compactMap { ($0["text"] as? String).flatMap(parseDuration) }.first
+            return CatalogTrack(videoID: videoID, title: title, artist: artist, album: album,
+                                artworkURL: largestThumbnail(in: renderer), durationSeconds: duration)
+        }
+    }
+
+    private func collectRuns(in value: Any, into output: inout [[String: Any]]) {
+        if let object = value as? [String: Any] {
+            if let runs = object["runs"] as? [[String: Any]] { output.append(contentsOf: runs) }
+            object.values.forEach { collectRuns(in: $0, into: &output) }
+        } else if let array = value as? [Any] {
+            array.forEach { collectRuns(in: $0, into: &output) }
+        }
     }
     private func bestAudio(in json: Any, headers: [String: String], player: YouTubePlayerScript?) async throws -> ResolvedAudioStream? {
         guard let root = json as? [String: Any], let streaming = root["streamingData"] as? [String: Any] else { return nil }

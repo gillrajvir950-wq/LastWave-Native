@@ -48,6 +48,12 @@ struct CatalogTrack: Identifiable, Equatable, Sendable {
     }
 }
 
+struct CatalogShelf: Identifiable, Equatable, Sendable {
+    let title: String
+    let tracks: [CatalogTrack]
+    var id: String { title + tracks.map(\.videoID).joined() }
+}
+
 struct ResolvedAudioStream: Sendable {
     let url: URL
     let quality: String

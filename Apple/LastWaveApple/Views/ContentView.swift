@@ -16,16 +16,15 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            LibraryView(showImporter: $showImporter)
+            YouTubeHomeView()
                 .tag(0)
-                .tabItem { Label("Library", systemImage: "music.note.list") }
+                .tabItem { Label("Home", systemImage: "house.fill") }
             OnlineSearchView()
                 .tag(1)
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
-            TrackCollectionView(title: "Favourites", tracks: library.favorites, emptyIcon: "heart",
-                                emptyMessage: "Songs you favourite appear here.")
-                .tabItem { Label("Favourites", systemImage: "heart.fill") }
+            LibraryView(showImporter: $showImporter)
                 .tag(2)
+                .tabItem { Label("Library", systemImage: "music.note.list") }
             PlaylistsView()
                 .tabItem { Label("Playlists", systemImage: "music.note.list") }
                 .tag(3)
@@ -33,8 +32,11 @@ struct ContentView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(4)
         }
-        .safeAreaInset(edge: .bottom) {
-            if player.current != nil { MiniPlayer(showPlayer: $showPlayer) }
+        .overlay(alignment: .bottom) {
+            if player.current != nil {
+                MiniPlayer(showPlayer: $showPlayer)
+                    .padding(.bottom, 54)
+            }
         }
         .overlay(alignment: .topLeading) { YouTubeFallbackPlayer(player: player) }
         .sheet(isPresented: $showPlayer) { FullPlayerView() }
@@ -60,6 +62,83 @@ struct ContentView: View {
         #if os(iOS)
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         #endif
+    }
+}
+
+private struct YouTubeHomeView: View {
+    @EnvironmentObject private var player: PlayerStore
+    @ObservedObject private var session = YouTubeSessionStore.shared
+    @State private var shelves: [CatalogShelf] = []
+    @State private var loading = false
+    @State private var loadingID: String?
+    @State private var errorMessage: String?
+    @State private var showLogin = false
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if !session.isConnected {
+                    ContentUnavailableView {
+                        Label("Connect YouTube Music", systemImage: "music.note.house.fill")
+                    } description: {
+                        Text("Sign in to load your recommendations, mixes and listening history.")
+                    } actions: {
+                        Button("Connect with Google") { showLogin = true }.buttonStyle(.borderedProminent)
+                    }
+                } else if loading && shelves.isEmpty {
+                    VStack(spacing: 14) { ProgressView(); Text("Loading YouTube Music…").foregroundStyle(.secondary) }
+                } else if let errorMessage, shelves.isEmpty {
+                    ContentUnavailableView("Couldn't load Home", systemImage: "wifi.exclamationmark",
+                                           description: Text(errorMessage))
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 28) {
+                            ForEach(shelves) { shelf in
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text(shelf.title).font(.title2.bold()).padding(.horizontal)
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        LazyHStack(spacing: 14) {
+                                            ForEach(shelf.tracks) { track in
+                                                Button {
+                                                    loadingID = track.id
+                                                    Task { await player.playOnline(track); loadingID = nil }
+                                                } label: {
+                                                    VStack(alignment: .leading, spacing: 7) {
+                                                        ZStack {
+                                                            RemoteArtwork(url: track.artworkURL, size: 150)
+                                                            if loadingID == track.id {
+                                                                RoundedRectangle(cornerRadius: 30).fill(.black.opacity(0.35))
+                                                                ProgressView().tint(.white)
+                                                            }
+                                                        }.frame(width: 150, height: 150)
+                                                        Text(track.title).font(.headline).lineLimit(1)
+                                                        Text(track.artist).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                                    }.frame(width: 150, alignment: .leading)
+                                                }.buttonStyle(.plain)
+                                            }
+                                        }.padding(.horizontal)
+                                    }
+                                }
+                            }
+                        }.padding(.vertical, 8).padding(.bottom, player.current == nil ? 12 : 92)
+                    }.refreshable { await loadHome() }
+                }
+            }
+            .navigationTitle("LastWave")
+            .toolbar {
+                if session.isConnected { Button("Refresh", systemImage: "arrow.clockwise") { Task { await loadHome() } } }
+            }
+            .sheet(isPresented: $showLogin) { YouTubeLoginView() }
+            .task(id: session.isConnected) { if session.isConnected { await loadHome() } }
+        }
+    }
+
+    private func loadHome() async {
+        guard session.isConnected, !loading else { return }
+        loading = true; errorMessage = nil
+        defer { loading = false }
+        do { shelves = try await YouTubeMusicService.shared.home() }
+        catch { errorMessage = error.localizedDescription }
     }
 }
 
@@ -384,8 +463,7 @@ private struct MiniPlayer: View {
         }
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
-        .padding(.horizontal)
-        .padding(.bottom, 4)
+        .padding(.horizontal, 10)
     }
 }
 
