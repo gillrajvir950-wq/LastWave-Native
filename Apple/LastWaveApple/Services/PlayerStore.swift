@@ -26,6 +26,9 @@ final class PlayerStore: ObservableObject {
     @Published var errorMessage: String?
     @Published private(set) var isLoading = false
     @Published private(set) var playbackQuality: String?
+    @Published private(set) var webVideoID: String?
+    @Published private(set) var webCommand = ""
+    @Published private(set) var webCommandSerial = 0
 
     private weak var library: LibraryStore?
     private var player: AVPlayer?
@@ -75,11 +78,29 @@ final class PlayerStore: ObservableObject {
                 stream = try? await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
                                                                         secret: addonSecret, quality: preference)
             }
-            if stream == nil { stream = try await YouTubeMusicService.shared.resolve(catalog) }
-            guard let stream else { throw MusicServiceError.noPlayableStream }
-            var track = catalog.playbackTrack; track.sourceQuality = stream.quality
-            loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
-        } catch { errorMessage = error.localizedDescription }
+            if stream == nil {
+                stream = await withTaskGroup(of: ResolvedAudioStream?.self) { group in
+                    group.addTask { try? await YouTubeMusicService.shared.resolve(catalog) }
+                    group.addTask {
+                        try? await Task.sleep(for: .seconds(6))
+                        return nil
+                    }
+                    let first = await group.next() ?? nil
+                    group.cancelAll()
+                    return first
+                }
+            }
+            if let stream {
+                var track = catalog.playbackTrack; track.sourceQuality = stream.quality
+                loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
+            } else {
+                loadWebPlayer(catalog)
+            }
+        } catch {
+            // Direct stream providers change frequently. The official embedded
+            // player is the reliable last resort and needs no resolver server.
+            loadWebPlayer(catalog)
+        }
     }
 
     func playNext() {
@@ -120,6 +141,12 @@ final class PlayerStore: ObservableObject {
     }
 
     func resume() {
+        if webVideoID != nil {
+            sendWebCommand("play")
+            isPlaying = true
+            updateNowPlaying()
+            return
+        }
         guard player != nil else { return }
         #if os(iOS)
         try? AVAudioSession.sharedInstance().setActive(true)
@@ -131,6 +158,12 @@ final class PlayerStore: ObservableObject {
     }
 
     func pause() {
+        if webVideoID != nil {
+            sendWebCommand("pause")
+            isPlaying = false
+            updateNowPlaying()
+            return
+        }
         player?.pause()
         isPlaying = false
         persistPlayback()
@@ -138,6 +171,7 @@ final class PlayerStore: ObservableObject {
     }
 
     func stop() {
+        if webVideoID != nil { sendWebCommand("stop") }
         clearObservers()
         player?.pause()
         player = nil
@@ -145,6 +179,7 @@ final class PlayerStore: ObservableObject {
         isPlaying = false
         elapsed = 0
         duration = 0
+        webVideoID = nil
         defaults.removeObject(forKey: "player.current")
         defaults.removeObject(forKey: "player.elapsed")
         #if os(iOS)
@@ -155,6 +190,12 @@ final class PlayerStore: ObservableObject {
     func seek(to seconds: Double) {
         guard seconds.isFinite else { return }
         let target = max(0, min(seconds, duration > 0 ? duration : seconds))
+        if webVideoID != nil {
+            elapsed = target
+            sendWebCommand("seek:\(target)")
+            updateNowPlaying()
+            return
+        }
         player?.seek(to: CMTime(seconds: target, preferredTimescale: 600))
         elapsed = target
         persistPlayback()
@@ -173,6 +214,7 @@ final class PlayerStore: ObservableObject {
     }
 
     private func loadRemote(_ track: Track, url: URL, headers: [String: String], autoplay: Bool) {
+        webVideoID = nil
         clearObservers()
         var requestHeaders = headers
         if requestHeaders["User-Agent"] == nil { requestHeaders["User-Agent"] = "Mozilla/5.0" }
@@ -181,6 +223,7 @@ final class PlayerStore: ObservableObject {
     }
 
     private func loadPlayer(_ track: Track, item: AVPlayerItem, autoplay: Bool, position: Double) {
+        webVideoID = nil
         clearObservers()
         if defaults.bool(forKey: "eq.enabled") {
             let gains = (defaults.array(forKey: "eq.gains") as? [NSNumber])?.map(\.floatValue)
@@ -214,6 +257,35 @@ final class PlayerStore: ObservableObject {
         }
         persistPlayback()
         if autoplay { resume() } else { isPlaying = false; updateNowPlaying() }
+    }
+
+    private func loadWebPlayer(_ catalog: CatalogTrack) {
+        clearObservers()
+        player?.pause()
+        player = nil
+        var track = catalog.playbackTrack
+        track.sourceQuality = "YouTube fallback"
+        current = track
+        playbackQuality = track.sourceQuality
+        elapsed = 0
+        duration = Double(catalog.durationSeconds ?? 0)
+        webVideoID = catalog.videoID
+        isPlaying = true
+        sendWebCommand("play")
+        updateNowPlaying()
+    }
+
+    private func sendWebCommand(_ command: String) {
+        webCommand = command
+        webCommandSerial += 1
+    }
+
+    func updateWebPlayback(isPlaying: Bool, elapsed: Double, duration: Double) {
+        guard webVideoID != nil else { return }
+        self.isPlaying = isPlaying
+        if elapsed.isFinite { self.elapsed = max(0, elapsed) }
+        if duration.isFinite, duration > 0 { self.duration = duration }
+        updateNowPlaying()
     }
 
     private func persistPlayback() {

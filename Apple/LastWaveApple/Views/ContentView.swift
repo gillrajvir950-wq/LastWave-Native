@@ -36,6 +36,7 @@ struct ContentView: View {
         .safeAreaInset(edge: .bottom) {
             if player.current != nil { MiniPlayer(showPlayer: $showPlayer) }
         }
+        .overlay(alignment: .topLeading) { YouTubeFallbackPlayer(player: player) }
         .sheet(isPresented: $showPlayer) { FullPlayerView() }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.audio], allowsMultipleSelection: true) { result in
             switch result {
