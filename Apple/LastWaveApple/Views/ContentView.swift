@@ -459,30 +459,28 @@ private struct MiniPlayer: View {
     @Binding var showPlayer: Bool
 
     var body: some View {
-        ZStack {
+        HStack(spacing: 12) {
             Button { showPlayer = true } label: {
-                RoundedRectangle(cornerRadius: 18).fill(.regularMaterial)
+                HStack(spacing: 12) {
+                    if let track = player.current { ArtworkView(track: track, size: 46, cornerRadius: 11) }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(player.current?.title ?? "").font(.headline).lineLimit(1)
+                        Text(player.current?.artist ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        if let quality = player.playbackQuality { Text(quality).font(.caption2).foregroundStyle(.purple).lineLimit(1) }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            HStack(spacing: 12) {
-                Button { showPlayer = true } label: {
-                    HStack(spacing: 12) {
-                        if let track = player.current { ArtworkView(track: track, size: 46, cornerRadius: 11) }
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(player.current?.title ?? "").font(.headline).lineLimit(1)
-                            Text(player.current?.artist ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                            if let quality = player.playbackQuality { Text(quality).font(.caption2).foregroundStyle(.purple).lineLimit(1) }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }.buttonStyle(.plain).frame(maxWidth: .infinity, alignment: .leading)
-                Button("Previous", systemImage: "backward.fill") { player.playPrevious() }.labelStyle(.iconOnly)
-                Button(player.isPlaying ? "Pause" : "Play", systemImage: player.isPlaying ? "pause.fill" : "play.fill") {
-                    if player.isPlaying { player.pause() } else { player.resume() }
-                }.labelStyle(.iconOnly).font(.title3)
-                Button("Next", systemImage: "forward.fill") { player.playNext() }.labelStyle(.iconOnly)
-            }
-            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Button("Previous", systemImage: "backward.fill") { player.playPrevious() }.labelStyle(.iconOnly)
+            Button(player.isPlaying ? "Pause" : "Play", systemImage: player.isPlaying ? "pause.fill" : "play.fill") {
+                if player.isPlaying { player.pause() } else { player.resume() }
+            }.labelStyle(.iconOnly).font(.title3)
+            Button("Next", systemImage: "forward.fill") { player.playNext() }.labelStyle(.iconOnly)
         }
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
         .padding(.horizontal, 10)
     }
 }
