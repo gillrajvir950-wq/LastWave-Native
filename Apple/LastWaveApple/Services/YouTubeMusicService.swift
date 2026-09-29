@@ -126,7 +126,9 @@ actor YouTubeMusicService {
                                        "contentCheckOk": true, "racyCheckOk": true,
                                        "playbackContext": ["contentPlaybackContext": playbackContext]]
             var playerBody = body
-            if name == "WEB_REMIX", let poToken {
+            // Android LastWave/Metrolist send the player PO token for all
+            // clients that require BotGuard, not only WEB_REMIX.
+            if ["WEB_REMIX", "ANDROID_MUSIC", "ANDROID"].contains(name), let poToken {
                 playerBody["context"] = ["client": client,
                                           "serviceIntegrityDimensions": ["poToken": poToken.player]]
             }
@@ -149,7 +151,8 @@ actor YouTubeMusicService {
             }
             if let json = try? await postJSON("\(apiHost)/youtubei/v1/player?key=\(key)", body: playerBody,
                                               headers: requestHeaders),
-               let stream = try? await bestAudio(in: json, headers: requestHeaders, player: playerScript) {
+               let stream = try? await bestAudio(in: json, headers: requestHeaders, player: playerScript,
+                                                 streamPoToken: poToken?.session) {
                 return stream
             }
         }
@@ -326,8 +329,16 @@ actor YouTubeMusicService {
             array.forEach { collectRuns(in: $0, into: &output) }
         }
     }
-    private func bestAudio(in json: Any, headers: [String: String], player: YouTubePlayerScript?) async throws -> ResolvedAudioStream? {
-        guard let root = json as? [String: Any], let streaming = root["streamingData"] as? [String: Any] else { return nil }
+    private func bestAudio(in json: Any, headers: [String: String], player: YouTubePlayerScript?, streamPoToken: String?) async throws -> ResolvedAudioStream? {
+        guard let root = json as? [String: Any] else { return nil }
+        // Do not attempt to play formats from a rejected/partial InnerTube
+        // response. The Android resolver treats this as a failed client and
+        // moves on to the next one.
+        if let status = root["playabilityStatus"] as? [String: Any],
+           let state = status["status"] as? String, state != "OK" {
+            return nil
+        }
+        guard let streaming = root["streamingData"] as? [String: Any] else { return nil }
         let formats = (streaming["adaptiveFormats"] as? [[String: Any]] ?? []) + (streaming["formats"] as? [[String: Any]] ?? [])
         let audio = formats.filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true }
             // AVPlayer on iOS is reliable with AAC/M4A, while the highest
@@ -340,14 +351,24 @@ actor YouTubeMusicService {
             }
         for best in audio {
             guard let url = try await playableURL(from: best, player: player) else { continue }
+            let finalURL = appendPoToken(url, token: streamPoToken)
             let mime = best["mimeType"] as? String
-            return ResolvedAudioStream(url: url, quality: "YouTube \((best["bitrate"] as? Int ?? 0) / 1000) kbps",
+            return ResolvedAudioStream(url: finalURL, quality: "YouTube \((best["bitrate"] as? Int ?? 0) / 1000) kbps",
                                        codec: mime, sampleRate: Int(best["audioSampleRate"] as? String ?? ""), bitDepth: nil,
                                        headers: headers)
         }
         guard let rawHLS = streaming["hlsManifestUrl"] as? String, let hlsURL = URL(string: rawHLS) else { return nil }
-        return ResolvedAudioStream(url: hlsURL, quality: "YouTube HLS", codec: "HLS", sampleRate: nil, bitDepth: nil,
+        return ResolvedAudioStream(url: appendPoToken(hlsURL, token: streamPoToken), quality: "YouTube HLS", codec: "HLS", sampleRate: nil, bitDepth: nil,
                                    headers: headers)
+    }
+
+    private func appendPoToken(_ url: URL, token: String?) -> URL {
+        guard let token, !token.isEmpty, var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        var items = components.queryItems ?? []
+        guard !items.contains(where: { $0.name == "pot" }) else { return url }
+        items.append(URLQueryItem(name: "pot", value: token))
+        components.queryItems = items
+        return components.url ?? url
     }
 
     private static func audioFormatScore(_ format: [String: Any]) -> Int {
