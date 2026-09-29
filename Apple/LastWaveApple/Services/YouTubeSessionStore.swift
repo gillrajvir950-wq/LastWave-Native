@@ -45,14 +45,26 @@ final class YouTubeSessionStore: ObservableObject {
     var isConnected: Bool { session?.sapisid != nil }
 
     func save(cookies: [HTTPCookie]) throws {
-        let youtubeCookies = cookies.filter {
+        let allRelevantCookies = cookies.filter {
             $0.domain.contains("youtube.com") || $0.domain.contains("google.com")
         }
-        let values = Dictionary(uniqueKeysWithValues: youtubeCookies.map { ($0.name, $0.value) })
+        // Google commonly creates cookies with the same name on several
+        // domains. Dictionary(uniqueKeysWithValues:) traps on those duplicates
+        // and used to crash immediately after a successful login.
+        let youtubeCookies = allRelevantCookies.filter { $0.domain.contains("youtube.com") }
+        let sessionCookies = youtubeCookies.isEmpty ? allRelevantCookies : youtubeCookies
+        var values: [String: String] = [:]
+        for item in allRelevantCookies {
+            if values[item.name] == nil || item.domain.contains("youtube.com") {
+                values[item.name] = item.value
+            }
+        }
         guard values["SAPISID"] != nil || values["__Secure-3PAPISID"] != nil else {
             throw SessionError.missingSAPISID
         }
-        let cookie = youtubeCookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
+        var uniqueSessionValues: [String: String] = [:]
+        for item in sessionCookies { uniqueSessionValues[item.name] = item.value }
+        let cookie = uniqueSessionValues.map { "\($0.key)=\($0.value)" }.joined(separator: "; ")
         let value = YouTubeSession(cookie: cookie,
                                    visitorData: values["VISITOR_INFO1_LIVE"],
                                    dataSyncID: nil,
