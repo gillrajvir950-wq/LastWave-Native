@@ -86,7 +86,10 @@ final class PlayerStore: ObservableObject {
             var track = catalog.playbackTrack; track.sourceQuality = stream.quality
             loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
         } else {
-            loadWebPlayer(catalog)
+            // Never fall back to a YouTube webpage here: webpages can inject
+            // pre-roll ads and are not a reliable audio engine. Keep playback
+            // ad-free and let the user retry the direct resolver instead.
+            errorMessage = "No ad-free audio stream was available. Please try the song again."
         }
     }
 

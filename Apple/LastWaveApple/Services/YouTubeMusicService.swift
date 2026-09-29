@@ -136,7 +136,14 @@ actor YouTubeMusicService {
         let instances = [
             "https://pipedapi.leptons.xyz",
             "https://pipedapi.kavin.rocks",
-            "https://pipedapi.nosebs.ru"
+            "https://pipedapi.nosebs.ru",
+            "https://pipedapi.tokhmi.xyz",
+            "https://pipedapi.syncpundit.io",
+            "https://api-piped.mha.fi",
+            "https://piped-api.garudalinux.org",
+            "https://pipedapi.rivo.lol",
+            "https://pipedapi.pfcd.me",
+            "https://api.piped.yt"
         ]
         return await withTaskGroup(of: ResolvedAudioStream?.self) { group in
             for base in instances {
