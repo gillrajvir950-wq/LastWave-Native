@@ -77,16 +77,14 @@ final class PlayerStore: ObservableObject {
             stream = try? await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
                                                                     secret: addonSecret, quality: preference)
         }
-        if stream == nil {
+        if stream == nil, !YouTubeSessionStore.shared.isConnected {
             stream = try? await YouTubeMusicService.shared.resolve(catalog)
         }
         if let stream {
             var track = catalog.playbackTrack; track.sourceQuality = stream.quality
             loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
         } else {
-            // Never present a fake playing state. Keep the current player intact
-            // and surface the resolver failure until the PO-token path can retry.
-            errorMessage = "This YouTube Music stream could not be resolved yet. Please try another song."
+            loadWebPlayer(catalog)
         }
     }
 
@@ -250,14 +248,17 @@ final class PlayerStore: ObservableObject {
         clearObservers()
         player?.pause()
         player = nil
+        #if os(iOS)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
         var track = catalog.playbackTrack
-        track.sourceQuality = "YouTube fallback"
+        track.sourceQuality = "YouTube Music"
         current = track
         playbackQuality = track.sourceQuality
         elapsed = 0
         duration = Double(catalog.durationSeconds ?? 0)
         webVideoID = catalog.videoID
-        isPlaying = true
+        isPlaying = false
         sendWebCommand("play")
         updateNowPlaying()
     }
