@@ -18,6 +18,7 @@ actor YouTubeMusicService {
     private var webKey = "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30"
     private var webVersion = "1.20260707.12.00"
     private var configured = false
+    private static let webUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
 
     init() {
         let config = URLSessionConfiguration.default
@@ -99,10 +100,14 @@ actor YouTubeMusicService {
         if let piped = await resolveWithPiped(track.videoID) { return piped }
         let playerScript = try? await YouTubeChallengeSolver.shared.currentPlayer()
         let clients: [(String, Int, String, String, String, [String: Any])] = [
+            // The Music app client is the important authenticated path.  It
+            // returns direct googlevideo audio URLs without loading a webpage.
+            ("ANDROID_MUSIC", 21, "7.27.52", "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w", "com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 14; en_US; Pixel 8; Build/UD1A.230803.041) gzip", ["osName":"Android", "osVersion":"14", "deviceMake":"Google", "deviceModel":"Pixel 8", "androidSdkVersion":34]),
             ("VISIONOS", 101, "0.1", "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", "Mozilla/5.0 (Apple Vision; CPU OS 1_3 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15", ["osName":"visionOS", "osVersion":"1.3.21O771", "deviceMake":"Apple", "deviceModel":"RealityDevice14,1"]),
             ("ANDROID_VR", 28, "1.65.10", "AIzaSyD-p045F_WzU-vA_YgX20SCx4KAo", "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip", ["osName":"Android", "osVersion":"12", "deviceMake":"Oculus", "deviceModel":"Quest 3", "androidSdkVersion":32]),
             ("TVHTML5", 7, "7.20260308.08.00", "AIzaSyAO_FJ2SlqAz8GlBg1fA54p0wDE7Xk80mU", "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 TV Safari/537.36", [:]),
             ("IOS_MUSIC", 26, "7.27.0", "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc", "com.google.ios.youtubemusic/7.27.0 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)", ["osName":"iOS", "osVersion":"17.5.1.21F90", "deviceMake":"Apple", "deviceModel":"iPhone16,2"]),
+            ("WEB_REMIX", 67, webVersion, webKey, Self.webUserAgent, [:]),
             ("ANDROID_TESTSUITE", 30, "1.9", "AIzaSyD-p045F_WzU-vA_YgX20SCx4KAo", "com.google.android.youtube/1.9 (Linux; U; Android 12) gzip", ["osName":"Android", "osVersion":"12"]),
             ("TVHTML5_SIMPLY_EMBEDDED_PLAYER", 85, "2.0", "AIzaSyAO_FJ2SlqAz8GlBg1fA54p0wDE7Xk80mU", "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 TV Safari/537.36", [:])
         ]
@@ -116,11 +121,24 @@ actor YouTubeMusicService {
             let body: [String: Any] = ["context": context, "videoId": track.videoID,
                                        "contentCheckOk": true, "racyCheckOk": true,
                                        "playbackContext": ["contentPlaybackContext": playbackContext]]
-            let origin = name.contains("TVHTML5") ? "https://www.youtube.com" : "https://www.youtube.com"
-            let requestHeaders = ["User-Agent": userAgent, "Origin": origin,
+            var requestHeaders = ["User-Agent": userAgent, "Origin": "https://www.youtube.com",
                                   "Referer": name.contains("EMBEDDED") ? "https://www.youtube.com/embed/\(track.videoID)" : "https://www.youtube.com/",
                                   "X-YouTube-Client-Name": String(id), "X-YouTube-Client-Version": version]
-            if let json = try? await postJSON("https://www.youtube.com/youtubei/v1/player?key=\(key)", body: body,
+            let apiHost = name == "WEB_REMIX" ? "https://music.youtube.com" : "https://www.youtube.com"
+            requestHeaders["Origin"] = apiHost
+            if name == "WEB_REMIX" { requestHeaders["Referer"] = "https://music.youtube.com/" }
+            if let activeSession = await MainActor.run(body: { YouTubeSessionStore.shared.session }) {
+                if name == "WEB_REMIX" {
+                    requestHeaders["Cookie"] = activeSession.cookie
+                    if let authorization = activeSession.authorization(origin: apiHost) {
+                        requestHeaders["Authorization"] = authorization
+                    }
+                }
+                if let visitorData = activeSession.visitorData {
+                    requestHeaders["X-Goog-Visitor-Id"] = visitorData
+                }
+            }
+            if let json = try? await postJSON("\(apiHost)/youtubei/v1/player?key=\(key)", body: body,
                                               headers: requestHeaders),
                let stream = try? await bestAudio(in: json, headers: requestHeaders, player: playerScript) {
                 return stream
@@ -303,7 +321,14 @@ actor YouTubeMusicService {
         guard let root = json as? [String: Any], let streaming = root["streamingData"] as? [String: Any] else { return nil }
         let formats = (streaming["adaptiveFormats"] as? [[String: Any]] ?? []) + (streaming["formats"] as? [[String: Any]] ?? [])
         let audio = formats.filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true }
-            .sorted { ($0["bitrate"] as? Int ?? 0) > ($1["bitrate"] as? Int ?? 0) }
+            // AVPlayer on iOS is reliable with AAC/M4A, while the highest
+            // bitrate YouTube candidate is often WebM/Opus (which can fail to
+            // open even though the URL resolved). Prefer an iOS-native format.
+            .sorted {
+                let lhs = Self.audioFormatScore($0)
+                let rhs = Self.audioFormatScore($1)
+                return lhs == rhs ? ($0["bitrate"] as? Int ?? 0) > ($1["bitrate"] as? Int ?? 0) : lhs > rhs
+            }
         for best in audio {
             guard let url = try await playableURL(from: best, player: player) else { continue }
             let mime = best["mimeType"] as? String
@@ -314,6 +339,14 @@ actor YouTubeMusicService {
         guard let rawHLS = streaming["hlsManifestUrl"] as? String, let hlsURL = URL(string: rawHLS) else { return nil }
         return ResolvedAudioStream(url: hlsURL, quality: "YouTube HLS", codec: "HLS", sampleRate: nil, bitDepth: nil,
                                    headers: headers)
+    }
+
+    private static func audioFormatScore(_ format: [String: Any]) -> Int {
+        let mime = (format["mimeType"] as? String ?? "").lowercased()
+        let codec = (format["codecs"] as? String ?? "").lowercased()
+        if mime.contains("mp4") || mime.contains("m4a") || mime.contains("mpeg") || codec.contains("mp4a") || codec.contains("aac") { return 3 }
+        if mime.contains("webm") || codec.contains("opus") || codec.contains("vorbis") { return 1 }
+        return 2
     }
 
     private func playableURL(from format: [String: Any], player: YouTubePlayerScript?) async throws -> URL? {
