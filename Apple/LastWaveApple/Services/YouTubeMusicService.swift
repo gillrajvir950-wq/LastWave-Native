@@ -54,7 +54,16 @@ actor YouTubeMusicService {
                 output.append(CatalogShelf(title: title, tracks: tracks))
             }
         }
-        if output.isEmpty { throw MusicServiceError.noResults }
+        // Home response shapes change frequently. Fall back to the same
+        // authenticated catalogue search used by Search instead of showing a
+        // blank Home screen when shelves are not returned.
+        if output.isEmpty {
+            let fallback = try await search("popular music")
+            if !fallback.isEmpty {
+                return [CatalogShelf(title: "Music for you", tracks: Array(fallback.prefix(20)))]
+            }
+            throw MusicServiceError.noResults
+        }
         return Array(output.prefix(12))
     }
 

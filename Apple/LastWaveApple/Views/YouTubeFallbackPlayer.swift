@@ -157,8 +157,8 @@ private final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationD
             handledSerial = serial
             hasStartedPlayback = false
             usingMusicSite = false
-            loadYouTubeWatch(view: view, videoID: videoID)
-            scheduleMusicFallback(videoID: videoID)
+            loadMusicWatch(view: view, videoID: videoID)
+            scheduleYouTubeFallback(videoID: videoID)
             return
         }
         guard handledSerial != serial else { return }
@@ -189,20 +189,20 @@ private final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationD
         DispatchQueue.main.async { [stateChanged] in stateChanged(state == 1, elapsed, duration) }
     }
 
-    private func loadYouTubeWatch(view: WKWebView, videoID: String) {
+    private func loadMusicWatch(view: WKWebView, videoID: String) {
         let safeID = videoID.filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
-        guard let url = URL(string: "https://www.youtube.com/watch?v=\(safeID)&autoplay=1&playsinline=1") else { return }
+        guard let url = URL(string: "https://music.youtube.com/watch?v=\(safeID)&autoplay=1") else { return }
         view.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20))
     }
 
-    private func scheduleMusicFallback(videoID: String) {
+    private func scheduleYouTubeFallback(videoID: String) {
         fallbackWorkItem?.cancel()
         let item = DispatchWorkItem { [weak self] in
             guard let self, !self.hasStartedPlayback, !self.usingMusicSite,
                   self.loadedVideoID == videoID, let view = self.activeView else { return }
             self.usingMusicSite = true
             let safeID = videoID.filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
-            guard let url = URL(string: "https://music.youtube.com/watch?v=\(safeID)") else { return }
+            guard let url = URL(string: "https://www.youtube.com/watch?v=\(safeID)&autoplay=1&playsinline=1") else { return }
             view.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20))
         }
         fallbackWorkItem = item

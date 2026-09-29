@@ -31,6 +31,7 @@ final class PlayerStore: ObservableObject {
     @Published private(set) var webCommandSerial = 0
 
     private weak var library: LibraryStore?
+    private var onlineQueue: [CatalogTrack] = []
     private var player: AVPlayer?
     private var timeObserver: Any?
     private var endedObserver: NSObjectProtocol?
@@ -65,7 +66,8 @@ final class PlayerStore: ObservableObject {
         load(track, autoplay: true)
     }
 
-    func playOnline(_ catalog: CatalogTrack) async {
+    func playOnline(_ catalog: CatalogTrack, queue: [CatalogTrack] = []) async {
+        if !queue.isEmpty { onlineQueue = queue }
         isLoading = true; errorMessage = nil
         defer { isLoading = false }
         let defaults = UserDefaults.standard
@@ -89,6 +91,20 @@ final class PlayerStore: ObservableObject {
     }
 
     func playNext() {
+        if let current, current.isRemote, !onlineQueue.isEmpty {
+            let next: CatalogTrack?
+            if repeatMode == .one {
+                next = onlineQueue.first(where: { $0.videoID == current.videoID }) ?? onlineQueue.first
+            } else if shuffleEnabled, onlineQueue.count > 1 {
+                next = onlineQueue.filter { $0.videoID != current.videoID }.randomElement()
+            } else if let index = onlineQueue.firstIndex(where: { $0.videoID == current.videoID }) {
+                let candidate = index + 1
+                next = candidate < onlineQueue.count ? onlineQueue[candidate] : (repeatMode == .all ? onlineQueue.first : nil)
+            } else { next = onlineQueue.first }
+            if let next { Task { await playOnline(next, queue: onlineQueue) } }
+            else { pause(); seek(to: 0) }
+            return
+        }
         guard let current, !queue.isEmpty else { return }
         if repeatMode == .one { seek(to: 0); resume(); return }
         let next: Track?
@@ -103,6 +119,17 @@ final class PlayerStore: ObservableObject {
     }
 
     func playPrevious() {
+        if let current, current.isRemote, !onlineQueue.isEmpty {
+            if elapsed > 3 { seek(to: 0); return }
+            let previous: CatalogTrack?
+            if shuffleEnabled, onlineQueue.count > 1 {
+                previous = onlineQueue.filter { $0.videoID != current.videoID }.randomElement()
+            } else if let index = onlineQueue.firstIndex(where: { $0.videoID == current.videoID }) {
+                previous = index > 0 ? onlineQueue[index - 1] : (repeatMode == .all ? onlineQueue.last : nil)
+            } else { previous = onlineQueue.first }
+            if let previous { Task { await playOnline(previous, queue: onlineQueue) } }
+            return
+        }
         guard let current, !queue.isEmpty else { return }
         if elapsed > 3 { seek(to: 0); return }
         let previous: Track?

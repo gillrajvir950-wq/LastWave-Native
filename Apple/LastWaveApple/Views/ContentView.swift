@@ -26,7 +26,7 @@ struct ContentView: View {
                 .tag(2)
                 .tabItem { Label("Library", systemImage: "music.note.list") }
             PlaylistsView()
-                .tabItem { Label("Playlists", systemImage: "music.note.list") }
+                .tabItem { Label("Playlists", systemImage: "rectangle.stack") }
                 .tag(3)
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
@@ -101,7 +101,7 @@ private struct YouTubeHomeView: View {
                                             ForEach(shelf.tracks) { track in
                                                 Button {
                                                     loadingID = track.id
-                                                    Task { await player.playOnline(track); loadingID = nil }
+                                                    Task { await player.playOnline(track, queue: shelf.tracks); loadingID = nil }
                                                 } label: {
                                                     VStack(alignment: .leading, spacing: 7) {
                                                         ZStack {
@@ -160,7 +160,7 @@ private struct OnlineSearchView: View {
                 else { ForEach(results) { song in
                     Button {
                         loadingID = song.id
-                        Task { await player.playOnline(song); loadingID = nil }
+                        Task { await player.playOnline(song, queue: results); loadingID = nil }
                     } label: {
                         HStack(spacing: 12) {
                             RemoteArtwork(url: song.artworkURL, size: 50)
@@ -203,10 +203,12 @@ private struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @Binding var showImporter: Bool
     @State private var search = ""
+    @State private var showingFavorites = false
 
     private var filtered: [Track] {
-        guard !search.isEmpty else { return library.tracks }
-        return library.tracks.filter {
+        let base = showingFavorites ? library.tracks.filter { library.isFavorite($0) } : library.tracks
+        guard !search.isEmpty else { return base }
+        return base.filter {
             $0.title.localizedCaseInsensitiveContains(search) ||
             $0.artist.localizedCaseInsensitiveContains(search) ||
             $0.album.localizedCaseInsensitiveContains(search)
@@ -215,7 +217,18 @@ private struct LibraryView: View {
 
     var body: some View {
         NavigationStack {
-            TrackList(tracks: filtered, emptyIcon: "music.note.list", emptyMessage: "Import audio files to start listening.")
+            VStack(spacing: 0) {
+                Picker("Library view", selection: $showingFavorites) {
+                    Text("Songs").tag(false)
+                    Text("Favourites").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                TrackList(tracks: filtered,
+                          emptyIcon: showingFavorites ? "heart" : "music.note.list",
+                          emptyMessage: showingFavorites ? "Favourite songs will appear here." : "Import audio files to start listening.")
+            }
                 .searchable(text: $search, prompt: "Songs, artists, albums")
                 .navigationTitle("LastWave")
                 .toolbar { Button("Import audio", systemImage: "plus") { showImporter = true } }
@@ -446,23 +459,30 @@ private struct MiniPlayer: View {
     @Binding var showPlayer: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
-            if let track = player.current { ArtworkView(track: track, size: 46, cornerRadius: 11) }
+        ZStack {
             Button { showPlayer = true } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(player.current?.title ?? "").font(.headline).lineLimit(1)
-                    Text(player.current?.artist ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                    if let quality = player.playbackQuality { Text(quality).font(.caption2).foregroundStyle(.purple).lineLimit(1) }
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }.buttonStyle(.plain)
-            Button("Previous", systemImage: "backward.fill") { player.playPrevious() }.labelStyle(.iconOnly)
-            Button(player.isPlaying ? "Pause" : "Play", systemImage: player.isPlaying ? "pause.fill" : "play.fill") {
-                if player.isPlaying { player.pause() } else { player.resume() }
-            }.labelStyle(.iconOnly).font(.title3)
-            Button("Next", systemImage: "forward.fill") { player.playNext() }.labelStyle(.iconOnly)
+                RoundedRectangle(cornerRadius: 18).fill(.regularMaterial)
+            }
+            .buttonStyle(.plain)
+            HStack(spacing: 12) {
+                Button { showPlayer = true } label: {
+                    HStack(spacing: 12) {
+                        if let track = player.current { ArtworkView(track: track, size: 46, cornerRadius: 11) }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(player.current?.title ?? "").font(.headline).lineLimit(1)
+                            Text(player.current?.artist ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            if let quality = player.playbackQuality { Text(quality).font(.caption2).foregroundStyle(.purple).lineLimit(1) }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }.buttonStyle(.plain).frame(maxWidth: .infinity, alignment: .leading)
+                Button("Previous", systemImage: "backward.fill") { player.playPrevious() }.labelStyle(.iconOnly)
+                Button(player.isPlaying ? "Pause" : "Play", systemImage: player.isPlaying ? "pause.fill" : "play.fill") {
+                    if player.isPlaying { player.pause() } else { player.resume() }
+                }.labelStyle(.iconOnly).font(.title3)
+                Button("Next", systemImage: "forward.fill") { player.playNext() }.labelStyle(.iconOnly)
+            }
+            .padding(12)
         }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
         .padding(.horizontal, 10)
     }
 }
