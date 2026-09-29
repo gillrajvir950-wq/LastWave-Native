@@ -75,12 +75,17 @@ final class PlayerStore: ObservableObject {
         let addonSecret = defaults.string(forKey: "lossless.addonSecret") ?? ""
         let preference = defaults.string(forKey: "lossless.quality") ?? "lossless"
         var stream: ResolvedAudioStream?
+        var resolverError: String?
         if !addonURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            stream = try? await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
-                                                                    secret: addonSecret, quality: preference)
+            do {
+                stream = try await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
+                                                                       secret: addonSecret, quality: preference)
+            } catch { resolverError = error.localizedDescription }
         }
         if stream == nil {
-            stream = try? await YouTubeMusicService.shared.resolve(catalog)
+            do {
+                stream = try await YouTubeMusicService.shared.resolve(catalog)
+            } catch { resolverError = error.localizedDescription }
         }
         if let stream {
             var track = catalog.playbackTrack; track.sourceQuality = stream.quality
@@ -89,7 +94,8 @@ final class PlayerStore: ObservableObject {
             // Never fall back to a YouTube webpage here: webpages can inject
             // pre-roll ads and are not a reliable audio engine. Keep playback
             // ad-free and let the user retry the direct resolver instead.
-            errorMessage = "No ad-free audio stream was available. Please try the song again."
+            errorMessage = resolverError.map { "Playback resolver: \($0)" }
+                ?? "No ad-free audio stream was available. Please try the song again."
         }
     }
 

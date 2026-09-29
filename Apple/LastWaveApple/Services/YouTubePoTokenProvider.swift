@@ -65,7 +65,16 @@ final class YouTubePoTokenProvider: NSObject, WKNavigationDelegate, WKScriptMess
         guard let payload = message.body as? [String: Any], let type = payload["type"] as? String else { return }
         switch type {
         case "botguard":
-            guard let response = payload["response"] as? String else { return fail(PoTokenError.invalidBotGuardResponse) }
+            let response: String
+            if let string = payload["response"] as? String {
+                response = string
+            } else if JSONSerialization.isValidJSONObject(payload["response"] as Any),
+                      let data = try? JSONSerialization.data(withJSONObject: payload["response"] as Any),
+                      let json = String(data: data, encoding: .utf8) {
+                response = json
+            } else {
+                return fail(PoTokenError.invalidBotGuardResponse)
+            }
             Task { @MainActor in await self.generateIntegrityToken(response) }
         case "ready":
             ready = true
@@ -92,7 +101,7 @@ final class YouTubePoTokenProvider: NSObject, WKNavigationDelegate, WKScriptMess
             let challenge = try Self.parseChallenge(response)
             let encoded = try JSONSerialization.data(withJSONObject: challenge)
             let json = String(decoding: encoded, as: UTF8.self)
-            evaluate("runBotGuard(\(json)).then(function(r){ window.webPoSignalOutput=r.webPoSignalOutput; window.webkit.messageHandlers.lastwavePoToken.postMessage({type:'botguard',response:r.botguardResponse}); }).catch(function(e){ window.webkit.messageHandlers.lastwavePoToken.postMessage({type:'error',message:String(e)}); })")
+            evaluate("runBotGuard(\(json)).then(function(r){ window.webPoSignalOutput=r.webPoSignalOutput; var v=(typeof r.botguardResponse==='string'?r.botguardResponse:JSON.stringify(r.botguardResponse)); window.webkit.messageHandlers.lastwavePoToken.postMessage({type:'botguard',response:v}); }).catch(function(e){ window.webkit.messageHandlers.lastwavePoToken.postMessage({type:'error',message:String(e)}); })")
         } catch { fail(error) }
     }
 
