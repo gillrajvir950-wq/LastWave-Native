@@ -77,7 +77,7 @@ final class PlayerStore: ObservableObject {
             stream = try? await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
                                                                     secret: addonSecret, quality: preference)
         }
-        if stream == nil, !YouTubeSessionStore.shared.isConnected {
+        if stream == nil {
             stream = try? await YouTubeMusicService.shared.resolve(catalog)
         }
         if let stream {
@@ -128,7 +128,8 @@ final class PlayerStore: ObservableObject {
     func resume() {
         if webVideoID != nil {
             sendWebCommand("play")
-            isPlaying = true
+            // Wait for WebKit to report actual playback; don't show a fake
+            // playing state while YouTube is still loading or buffering.
             updateNowPlaying()
             return
         }

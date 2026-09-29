@@ -13,7 +13,10 @@ struct YouTubeFallbackPlayer: View {
                           commandSerial: player.webCommandSerial,
                           stateChanged: player.updateWebPlayback)
                 .frame(width: 390, height: 260)
-                .opacity(0.01)
+                // Keep WebKit visible to iOS' media compositor. A nearly
+                // transparent video can be suspended before audio is created.
+                .frame(width: 1, height: 1)
+                .clipped()
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
@@ -26,6 +29,10 @@ private let lastWaveBridgeScript = """
   window.__lastWaveBridgeInstalled = true;
   window.__lastWaveWantsPlayback = true;
   function media() { return document.querySelector('video, audio'); }
+  function pressPlay() {
+    var button = document.querySelector('.ytp-large-play-button, .ytp-play-button, tp-yt-paper-icon-button.play-pause-button');
+    if (button) { try { button.click(); } catch (_) {} }
+  }
   function report() {
     var item = media(); if (!item) return;
     try { window.webkit.messageHandlers.lastWave.postMessage({
@@ -37,7 +44,11 @@ private let lastWaveBridgeScript = """
   window.lastWavePlay = function () {
     window.__lastWaveWantsPlayback = true;
     var item = media();
-    if (item) { item.muted = false; item.volume = 1; item.play().catch(function(){}); }
+    if (item) {
+      item.muted = false; item.volume = 1;
+      item.setAttribute('playsinline', '');
+      item.play().catch(function(){ pressPlay(); });
+    } else { pressPlay(); }
   };
   window.lastWavePause = function () {
     window.__lastWaveWantsPlayback = false;
@@ -53,10 +64,13 @@ private let lastWaveBridgeScript = """
   setInterval(function () {
     var item = media();
     if (item && window.__lastWaveWantsPlayback && item.paused) {
-      item.muted = false; item.volume = 1; item.play().catch(function(){});
+      item.muted = false; item.volume = 1;
+      item.play().catch(function(){ pressPlay(); });
     }
     report();
-  }, 500);
+  }, 350);
+  new MutationObserver(function(){ if (window.__lastWaveWantsPlayback) window.lastWavePlay(); })
+    .observe(document.documentElement, {childList:true, subtree:true});
 })();
 """
 
@@ -73,13 +87,16 @@ private struct PlayerWebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
         configuration.allowsInlineMediaPlayback = true
+        configuration.allowsAirPlayForMediaPlayback = true
+        configuration.allowsPictureInPictureMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
         configuration.userContentController.addUserScript(WKUserScript(
             source: lastWaveBridgeScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         configuration.userContentController.add(context.coordinator, name: "lastWave")
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.navigationDelegate = context.coordinator
-        view.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
+        view.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
         view.isOpaque = false
         view.backgroundColor = .clear
         return view
@@ -126,17 +143,22 @@ private final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationD
     private let stateChanged: (Bool, Double, Double) -> Void
     private var loadedVideoID: String?
     private var handledSerial = -1
+    private weak var activeView: WKWebView?
+    private var fallbackWorkItem: DispatchWorkItem?
+    private var hasStartedPlayback = false
+    private var usingMusicSite = false
 
     init(stateChanged: @escaping (Bool, Double, Double) -> Void) { self.stateChanged = stateChanged }
 
     func update(view: WKWebView, videoID: String, command: String, serial: Int) {
+        activeView = view
         if loadedVideoID != videoID {
             loadedVideoID = videoID
             handledSerial = serial
-            let safeID = videoID.filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
-            if let url = URL(string: "https://music.youtube.com/watch?v=\(safeID)") {
-                view.load(URLRequest(url: url))
-            }
+            hasStartedPlayback = false
+            usingMusicSite = false
+            loadYouTubeWatch(view: view, videoID: videoID)
+            scheduleMusicFallback(videoID: videoID)
             return
         }
         guard handledSerial != serial else { return }
@@ -160,6 +182,30 @@ private final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationD
         let state = (body["state"] as? NSNumber)?.intValue ?? -1
         let elapsed = (body["elapsed"] as? NSNumber)?.doubleValue ?? 0
         let duration = (body["duration"] as? NSNumber)?.doubleValue ?? 0
+        if state == 1 {
+            hasStartedPlayback = true
+            fallbackWorkItem?.cancel()
+        }
         DispatchQueue.main.async { [stateChanged] in stateChanged(state == 1, elapsed, duration) }
+    }
+
+    private func loadYouTubeWatch(view: WKWebView, videoID: String) {
+        let safeID = videoID.filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
+        guard let url = URL(string: "https://www.youtube.com/watch?v=\(safeID)&autoplay=1&playsinline=1") else { return }
+        view.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20))
+    }
+
+    private func scheduleMusicFallback(videoID: String) {
+        fallbackWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self, !self.hasStartedPlayback, !self.usingMusicSite,
+                  self.loadedVideoID == videoID, let view = self.activeView else { return }
+            self.usingMusicSite = true
+            let safeID = videoID.filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
+            guard let url = URL(string: "https://music.youtube.com/watch?v=\(safeID)") else { return }
+            view.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20))
+        }
+        fallbackWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 9, execute: item)
     }
 }
