@@ -99,6 +99,7 @@ actor YouTubeMusicService {
     func resolve(_ track: CatalogTrack) async throws -> ResolvedAudioStream {
         if let piped = await resolveWithPiped(track.videoID) { return piped }
         let playerScript = try? await YouTubeChallengeSolver.shared.currentPlayer()
+        let poToken = try? await YouTubePoTokenProvider.shared.token(for: track.videoID)
         let clients: [(String, Int, String, String, String, [String: Any])] = [
             // The Music app client is the important authenticated path.  It
             // returns direct googlevideo audio URLs without loading a webpage.
@@ -114,6 +115,9 @@ actor YouTubeMusicService {
         for (name, id, version, key, userAgent, extras) in clients {
             var client: [String: Any] = ["clientName": name, "clientVersion": version, "hl":"en", "gl":"US"]
             extras.forEach { client[$0] = $1 }
+            if name == "WEB_REMIX", let visitorData = await MainActor.run(body: { YouTubeSessionStore.shared.session?.visitorData }) {
+                client["visitorData"] = visitorData
+            }
             var context: [String: Any] = ["client": client]
             if name.contains("EMBEDDED") { context["thirdParty"] = ["embedUrl": "https://www.youtube.com/embed/\(track.videoID)"] }
             var playbackContext: [String: Any] = ["html5Preference": "HTML5_PREF_WANTS"]
@@ -121,6 +125,11 @@ actor YouTubeMusicService {
             let body: [String: Any] = ["context": context, "videoId": track.videoID,
                                        "contentCheckOk": true, "racyCheckOk": true,
                                        "playbackContext": ["contentPlaybackContext": playbackContext]]
+            var playerBody = body
+            if name == "WEB_REMIX", let poToken {
+                playerBody["context"] = ["client": client,
+                                          "serviceIntegrityDimensions": ["poToken": poToken.player]]
+            }
             var requestHeaders = ["User-Agent": userAgent, "Origin": "https://www.youtube.com",
                                   "Referer": name.contains("EMBEDDED") ? "https://www.youtube.com/embed/\(track.videoID)" : "https://www.youtube.com/",
                                   "X-YouTube-Client-Name": String(id), "X-YouTube-Client-Version": version]
@@ -138,7 +147,7 @@ actor YouTubeMusicService {
                     requestHeaders["X-Goog-Visitor-Id"] = visitorData
                 }
             }
-            if let json = try? await postJSON("\(apiHost)/youtubei/v1/player?key=\(key)", body: body,
+            if let json = try? await postJSON("\(apiHost)/youtubei/v1/player?key=\(key)", body: playerBody,
                                               headers: requestHeaders),
                let stream = try? await bestAudio(in: json, headers: requestHeaders, player: playerScript) {
                 return stream
