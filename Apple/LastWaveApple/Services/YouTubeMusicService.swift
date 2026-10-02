@@ -97,7 +97,7 @@ actor YouTubeMusicService {
     }
 
     func resolve(_ track: CatalogTrack) async throws -> ResolvedAudioStream {
-        if let piped = await resolveWithPiped(track.videoID) { return piped }
+        
         let playerScript = try? await YouTubeChallengeSolver.shared.currentPlayer()
         let poToken = try? await YouTubePoTokenProvider.shared.token(for: track.videoID)
         let clients: [(String, Int, String, String, String, [String: Any])] = [

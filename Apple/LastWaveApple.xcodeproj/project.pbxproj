@@ -1,0 +1,541 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		042D579FE5527583206FCF33 /* YouTubePoTokenProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C35680AEF900DB88D32303F /* YouTubePoTokenProvider.swift */; };
+		07DED286A721FF2842F72500 /* AudioTapEqualizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B4120CD7F53F1290D277A22 /* AudioTapEqualizer.swift */; };
+		0946F6CE645405659F85F63C /* YouTubeFallbackPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D58AD5030A0446069B99F65 /* YouTubeFallbackPlayer.swift */; };
+		0AE254CFB06C895D383EB73F /* LastWaveAppleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF9F88864AEA216AB39C4E /* LastWaveAppleApp.swift */; };
+		17940E2CACE922C941924C74 /* YouTubeFallbackPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D58AD5030A0446069B99F65 /* YouTubeFallbackPlayer.swift */; };
+		196AB45EF6129ADA2060B80F /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CD6704C75BED174B4A5D2A /* Track.swift */; };
+		22606BC3AB5A0EEFFB167B1A /* YouTubeLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB688E800AA0E49687199A6A /* YouTubeLoginView.swift */; };
+		323A4FAC0311FB84AFDD3E02 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E8468D3E60A1C88EF29F22 /* ContentView.swift */; };
+		326DE6EF11A7C38EA0F27D7E /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF2C498839B4DB3C5E2A436 /* LibraryStore.swift */; };
+		33437183983D7F5968567E01 /* YouTubePoTokenProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C35680AEF900DB88D32303F /* YouTubePoTokenProvider.swift */; };
+		3692B47C21EA10272AE075B7 /* YouTubeMusicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0893D93386BA5AAACA1D3B /* YouTubeMusicService.swift */; };
+		43996E7572C87D1E1B9F9978 /* YouTubeLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB688E800AA0E49687199A6A /* YouTubeLoginView.swift */; };
+		4B3471557FA6D7174C40FD8B /* LosslessAddonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88A6D3FCCDE43DFE6BD6917 /* LosslessAddonService.swift */; };
+		4B5F45C1696B521C85358898 /* po_token.html in Resources */ = {isa = PBXBuildFile; fileRef = 7556DB4A93D45CB35C13D03C /* po_token.html */; };
+		4F214A3A77140BCDB43F614D /* yt.solver.core.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 8E7034C9CB4C71F3C61B8E2C /* yt.solver.core.min.js */; };
+		5252F7F6D2C2999217DE731F /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CD6704C75BED174B4A5D2A /* Track.swift */; };
+		7B057E452C15123A85797552 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE41690A413A23FEE7EA6E3A /* Assets.xcassets */; };
+		7E89D869C1F41CEFD5BAE7F7 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF2C498839B4DB3C5E2A436 /* LibraryStore.swift */; };
+		961631341607F21858942B54 /* EqualizerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CD14A625C4A187437AED40 /* EqualizerStore.swift */; };
+		9AC6B71CE3CB36955CBDF912 /* yt.solver.lib.min.js in Resources */ = {isa = PBXBuildFile; fileRef = E43DA49D7B1D665283881D6C /* yt.solver.lib.min.js */; };
+		9E6365D7BD1A7C1E6B15ABCE /* YouTubeSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FFB1543931EE0F1578D4053 /* YouTubeSessionStore.swift */; };
+		9EFCE171D7032A4E425254A3 /* YouTubeChallengeSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28CC0832B2EBEFDF2CB5182 /* YouTubeChallengeSolver.swift */; };
+		9FC8709010F135EC02C74006 /* PlayerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDD9E393EEC19172558731B /* PlayerStore.swift */; };
+		A0631BCAB49150032DD13A3A /* LastWaveAppleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF9F88864AEA216AB39C4E /* LastWaveAppleApp.swift */; };
+		A7DA32242B89D258FB70537A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E8468D3E60A1C88EF29F22 /* ContentView.swift */; };
+		B30B67AA8BB74039E12052C7 /* YouTubeChallengeSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28CC0832B2EBEFDF2CB5182 /* YouTubeChallengeSolver.swift */; };
+		BD5755552B0C6672D66A7511 /* YouTubeSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FFB1543931EE0F1578D4053 /* YouTubeSessionStore.swift */; };
+		C4DCE7F7DB3CA9D479E8E354 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE41690A413A23FEE7EA6E3A /* Assets.xcassets */; };
+		D497DCACF5103677FC65F0E9 /* LosslessAddonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88A6D3FCCDE43DFE6BD6917 /* LosslessAddonService.swift */; };
+		D8379C764FDA55EFAB838CA4 /* LyricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 942986913308E66645D01E85 /* LyricsService.swift */; };
+		D9A7EA38A9B7DD4F5FAF1453 /* yt.solver.core.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 8E7034C9CB4C71F3C61B8E2C /* yt.solver.core.min.js */; };
+		DAC1A1C1644B348F5871D627 /* EqualizerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CD14A625C4A187437AED40 /* EqualizerStore.swift */; };
+		DEB67C9714C6F396EEA69492 /* AudioTapEqualizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B4120CD7F53F1290D277A22 /* AudioTapEqualizer.swift */; };
+		E1B7F2D61965737A5E44915B /* po_token.html in Resources */ = {isa = PBXBuildFile; fileRef = 7556DB4A93D45CB35C13D03C /* po_token.html */; };
+		EA2696BADCE6253EB2D3F933 /* YouTubeMusicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0893D93386BA5AAACA1D3B /* YouTubeMusicService.swift */; };
+		EE25AA9ABFA121C8E9E0450A /* yt.solver.lib.min.js in Resources */ = {isa = PBXBuildFile; fileRef = E43DA49D7B1D665283881D6C /* yt.solver.lib.min.js */; };
+		F18DA6E1D1EE04702F84236C /* LyricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 942986913308E66645D01E85 /* LyricsService.swift */; };
+		F506A43B29C1C521308FD4EF /* PlayerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDD9E393EEC19172558731B /* PlayerStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		009F66D99E94BEF9105C0A18 /* LastWave-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "LastWave-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0FFB1543931EE0F1578D4053 /* YouTubeSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSessionStore.swift; sourceTree = "<group>"; };
+		15CD14A625C4A187437AED40 /* EqualizerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EqualizerStore.swift; sourceTree = "<group>"; };
+		1C35680AEF900DB88D32303F /* YouTubePoTokenProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePoTokenProvider.swift; sourceTree = "<group>"; };
+		2B4120CD7F53F1290D277A22 /* AudioTapEqualizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTapEqualizer.swift; sourceTree = "<group>"; };
+		3D58AD5030A0446069B99F65 /* YouTubeFallbackPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeFallbackPlayer.swift; sourceTree = "<group>"; };
+		467A9DA48B633236FD06F20A /* LastWave-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "LastWave-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CDD9E393EEC19172558731B /* PlayerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStore.swift; sourceTree = "<group>"; };
+		58E8468D3E60A1C88EF29F22 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5CF2C498839B4DB3C5E2A436 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		7556DB4A93D45CB35C13D03C /* po_token.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = po_token.html; sourceTree = "<group>"; };
+		84CD6704C75BED174B4A5D2A /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
+		85AF9F88864AEA216AB39C4E /* LastWaveAppleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LastWaveAppleApp.swift; sourceTree = "<group>"; };
+		8E7034C9CB4C71F3C61B8E2C /* yt.solver.core.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = yt.solver.core.min.js; sourceTree = "<group>"; };
+		8F0893D93386BA5AAACA1D3B /* YouTubeMusicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeMusicService.swift; sourceTree = "<group>"; };
+		942986913308E66645D01E85 /* LyricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsService.swift; sourceTree = "<group>"; };
+		AB688E800AA0E49687199A6A /* YouTubeLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeLoginView.swift; sourceTree = "<group>"; };
+		C88A6D3FCCDE43DFE6BD6917 /* LosslessAddonService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LosslessAddonService.swift; sourceTree = "<group>"; };
+		D28CC0832B2EBEFDF2CB5182 /* YouTubeChallengeSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeChallengeSolver.swift; sourceTree = "<group>"; };
+		E43DA49D7B1D665283881D6C /* yt.solver.lib.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = yt.solver.lib.min.js; sourceTree = "<group>"; };
+		EE41690A413A23FEE7EA6E3A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		12AFFADFD62A38EF00E89506 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				467A9DA48B633236FD06F20A /* LastWave-iOS.app */,
+				009F66D99E94BEF9105C0A18 /* LastWave-macOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5EC1E8E97BB55CDD128C3063 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				84CD6704C75BED174B4A5D2A /* Track.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7870E3354D9D687326EDD301 /* LastWaveApple */ = {
+			isa = PBXGroup;
+			children = (
+				EE41690A413A23FEE7EA6E3A /* Assets.xcassets */,
+				B19CC414AAF1D7BBE5417B5F /* App */,
+				5EC1E8E97BB55CDD128C3063 /* Models */,
+				D0217AB5651FCE5377EFD597 /* Resources */,
+				E64D4F822AF21C05914D4FCB /* Services */,
+				FC81B55F30B937F725DE843E /* Views */,
+			);
+			path = LastWaveApple;
+			sourceTree = "<group>";
+		};
+		B19CC414AAF1D7BBE5417B5F /* App */ = {
+			isa = PBXGroup;
+			children = (
+				85AF9F88864AEA216AB39C4E /* LastWaveAppleApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C7215D442DE287E4B4C9FFBA = {
+			isa = PBXGroup;
+			children = (
+				7870E3354D9D687326EDD301 /* LastWaveApple */,
+				12AFFADFD62A38EF00E89506 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D0217AB5651FCE5377EFD597 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7556DB4A93D45CB35C13D03C /* po_token.html */,
+				8E7034C9CB4C71F3C61B8E2C /* yt.solver.core.min.js */,
+				E43DA49D7B1D665283881D6C /* yt.solver.lib.min.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		E64D4F822AF21C05914D4FCB /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				2B4120CD7F53F1290D277A22 /* AudioTapEqualizer.swift */,
+				15CD14A625C4A187437AED40 /* EqualizerStore.swift */,
+				5CF2C498839B4DB3C5E2A436 /* LibraryStore.swift */,
+				C88A6D3FCCDE43DFE6BD6917 /* LosslessAddonService.swift */,
+				942986913308E66645D01E85 /* LyricsService.swift */,
+				4CDD9E393EEC19172558731B /* PlayerStore.swift */,
+				D28CC0832B2EBEFDF2CB5182 /* YouTubeChallengeSolver.swift */,
+				8F0893D93386BA5AAACA1D3B /* YouTubeMusicService.swift */,
+				1C35680AEF900DB88D32303F /* YouTubePoTokenProvider.swift */,
+				0FFB1543931EE0F1578D4053 /* YouTubeSessionStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		FC81B55F30B937F725DE843E /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				58E8468D3E60A1C88EF29F22 /* ContentView.swift */,
+				3D58AD5030A0446069B99F65 /* YouTubeFallbackPlayer.swift */,
+				AB688E800AA0E49687199A6A /* YouTubeLoginView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		694DF3918D117E70556082CD /* LastWave-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6539C27DB1E366E356042EEA /* Build configuration list for PBXNativeTarget "LastWave-iOS" */;
+			buildPhases = (
+				232BC0CC949638AF1E55E61D /* Sources */,
+				317F6702CE62ED1B836AD0ED /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "LastWave-iOS";
+			packageProductDependencies = (
+			);
+			productName = "LastWave-iOS";
+			productReference = 467A9DA48B633236FD06F20A /* LastWave-iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7D5F1B41ED100160C96854C3 /* LastWave-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 224F0094A7641E6CF1D86FC5 /* Build configuration list for PBXNativeTarget "LastWave-macOS" */;
+			buildPhases = (
+				76FD8C293CF344C91BAF7108 /* Sources */,
+				8C222635373B2BE3F5D66022 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "LastWave-macOS";
+			packageProductDependencies = (
+			);
+			productName = "LastWave-macOS";
+			productReference = 009F66D99E94BEF9105C0A18 /* LastWave-macOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		ADD89E9A771DD02F213F245E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					694DF3918D117E70556082CD = {
+						ProvisioningStyle = Automatic;
+					};
+					7D5F1B41ED100160C96854C3 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 5BAF380FFA6DD7065D6FE7D4 /* Build configuration list for PBXProject "LastWaveApple" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C7215D442DE287E4B4C9FFBA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 12AFFADFD62A38EF00E89506 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				694DF3918D117E70556082CD /* LastWave-iOS */,
+				7D5F1B41ED100160C96854C3 /* LastWave-macOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		317F6702CE62ED1B836AD0ED /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C4DCE7F7DB3CA9D479E8E354 /* Assets.xcassets in Resources */,
+				4B5F45C1696B521C85358898 /* po_token.html in Resources */,
+				D9A7EA38A9B7DD4F5FAF1453 /* yt.solver.core.min.js in Resources */,
+				EE25AA9ABFA121C8E9E0450A /* yt.solver.lib.min.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8C222635373B2BE3F5D66022 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7B057E452C15123A85797552 /* Assets.xcassets in Resources */,
+				E1B7F2D61965737A5E44915B /* po_token.html in Resources */,
+				4F214A3A77140BCDB43F614D /* yt.solver.core.min.js in Resources */,
+				9AC6B71CE3CB36955CBDF912 /* yt.solver.lib.min.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		232BC0CC949638AF1E55E61D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DEB67C9714C6F396EEA69492 /* AudioTapEqualizer.swift in Sources */,
+				323A4FAC0311FB84AFDD3E02 /* ContentView.swift in Sources */,
+				DAC1A1C1644B348F5871D627 /* EqualizerStore.swift in Sources */,
+				0AE254CFB06C895D383EB73F /* LastWaveAppleApp.swift in Sources */,
+				326DE6EF11A7C38EA0F27D7E /* LibraryStore.swift in Sources */,
+				4B3471557FA6D7174C40FD8B /* LosslessAddonService.swift in Sources */,
+				F18DA6E1D1EE04702F84236C /* LyricsService.swift in Sources */,
+				F506A43B29C1C521308FD4EF /* PlayerStore.swift in Sources */,
+				196AB45EF6129ADA2060B80F /* Track.swift in Sources */,
+				B30B67AA8BB74039E12052C7 /* YouTubeChallengeSolver.swift in Sources */,
+				17940E2CACE922C941924C74 /* YouTubeFallbackPlayer.swift in Sources */,
+				22606BC3AB5A0EEFFB167B1A /* YouTubeLoginView.swift in Sources */,
+				EA2696BADCE6253EB2D3F933 /* YouTubeMusicService.swift in Sources */,
+				042D579FE5527583206FCF33 /* YouTubePoTokenProvider.swift in Sources */,
+				9E6365D7BD1A7C1E6B15ABCE /* YouTubeSessionStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		76FD8C293CF344C91BAF7108 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				07DED286A721FF2842F72500 /* AudioTapEqualizer.swift in Sources */,
+				A7DA32242B89D258FB70537A /* ContentView.swift in Sources */,
+				961631341607F21858942B54 /* EqualizerStore.swift in Sources */,
+				A0631BCAB49150032DD13A3A /* LastWaveAppleApp.swift in Sources */,
+				7E89D869C1F41CEFD5BAE7F7 /* LibraryStore.swift in Sources */,
+				D497DCACF5103677FC65F0E9 /* LosslessAddonService.swift in Sources */,
+				D8379C764FDA55EFAB838CA4 /* LyricsService.swift in Sources */,
+				9FC8709010F135EC02C74006 /* PlayerStore.swift in Sources */,
+				5252F7F6D2C2999217DE731F /* Track.swift in Sources */,
+				9EFCE171D7032A4E425254A3 /* YouTubeChallengeSolver.swift in Sources */,
+				0946F6CE645405659F85F63C /* YouTubeFallbackPlayer.swift in Sources */,
+				43996E7572C87D1E1B9F9978 /* YouTubeLoginView.swift in Sources */,
+				3692B47C21EA10272AE075B7 /* YouTubeMusicService.swift in Sources */,
+				33437183983D7F5968567E01 /* YouTubePoTokenProvider.swift in Sources */,
+				BD5755552B0C6672D66A7511 /* YouTubeSessionStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0BA4315DA71E402FE90DB34E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 17;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "Generated/macOS-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lastwave.community.macos;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		3FA4CA08A5C2D5890649B01B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		6F264A71EF23B8F8E548E746 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = G57N4CJCP6;
+				INFOPLIST_FILE = "Generated/iOS-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lastwave.community.ios;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		8860A8E023985C0A565420D4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = G57N4CJCP6;
+				INFOPLIST_FILE = "Generated/iOS-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lastwave.community.ios;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A87F9FCEDC5D31BA33AC0D0E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 17;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "Generated/macOS-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lastwave.community.macos;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		F9B7D04BA1E983CC17312157 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		224F0094A7641E6CF1D86FC5 /* Build configuration list for PBXNativeTarget "LastWave-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A87F9FCEDC5D31BA33AC0D0E /* Debug */,
+				0BA4315DA71E402FE90DB34E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5BAF380FFA6DD7065D6FE7D4 /* Build configuration list for PBXProject "LastWaveApple" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3FA4CA08A5C2D5890649B01B /* Debug */,
+				F9B7D04BA1E983CC17312157 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6539C27DB1E366E356042EEA /* Build configuration list for PBXNativeTarget "LastWave-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6F264A71EF23B8F8E548E746 /* Debug */,
+				8860A8E023985C0A565420D4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = ADD89E9A771DD02F213F245E /* Project object */;
+}

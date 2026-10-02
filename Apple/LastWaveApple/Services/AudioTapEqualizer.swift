@@ -18,11 +18,18 @@ enum AudioTapEqualizer {
             unprepare: eqTapUnprepare,
             process: eqTapProcess
         )
-        var unmanagedTap: Unmanaged<MTAudioProcessingTap>?
-        let status = MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks,
-                                                kMTAudioProcessingTapCreationFlag_PostEffects, &unmanagedTap)
-        guard status == noErr, let tap = unmanagedTap?.takeRetainedValue() else {
-            Unmanaged.passUnretained(context).release(); return nil
+        var unmanagedTap: MTAudioProcessingTap?
+
+        let status = MTAudioProcessingTapCreate(
+            kCFAllocatorDefault,
+            &callbacks,
+            kMTAudioProcessingTapCreationFlag_PostEffects,
+            &unmanagedTap
+        )
+
+        guard status == noErr, let tap = unmanagedTap else {
+            Unmanaged.passUnretained(context).release()
+            return nil
         }
         let parameters = AVMutableAudioMixInputParameters()
         parameters.audioTapProcessor = tap

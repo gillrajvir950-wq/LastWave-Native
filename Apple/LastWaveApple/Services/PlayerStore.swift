@@ -250,7 +250,7 @@ final class PlayerStore: ObservableObject {
         if defaults.bool(forKey: "eq.enabled") {
             let gains = (defaults.array(forKey: "eq.gains") as? [NSNumber])?.map(\.floatValue)
                 ?? EqualizerStore.presets[0].gains
-            item.audioMix = AudioTapEqualizer.makeMix(gains: gains)
+//            item.audioMix = AudioTapEqualizer.makeMix(gains: gains)
         }
         player = AVPlayer(playerItem: item)
         current = track
