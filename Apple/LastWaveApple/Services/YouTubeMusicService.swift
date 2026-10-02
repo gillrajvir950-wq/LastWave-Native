@@ -156,6 +156,13 @@ actor YouTubeMusicService {
                 return stream
             }
         }
+
+        // Direct InnerTube clients can return no usable URL when YouTube
+        // requires a current cipher or BotGuard token. Use the public Piped
+        // resolver as a last-resort fallback before reporting failure.
+        if let piped = await resolveWithPiped(track.videoID) {
+            return piped
+        }
         throw MusicServiceError.noPlayableStream
     }
 
