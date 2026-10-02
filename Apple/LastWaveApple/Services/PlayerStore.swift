@@ -91,11 +91,10 @@ final class PlayerStore: ObservableObject {
             var track = catalog.playbackTrack; track.sourceQuality = stream.quality
             loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
         } else {
-            // Never fall back to a YouTube webpage here: webpages can inject
-            // pre-roll ads and are not a reliable audio engine. Keep playback
-            // ad-free and let the user retry the direct resolver instead.
-            errorMessage = resolverError.map { "Playback resolver: \($0)" }
-                ?? "No ad-free audio stream was available. Please try the song again."
+            // Direct stream extraction is brittle. Use the already-authenticated
+            // hidden WKWebView player as the final playback path instead of
+            // stopping with “No playable audio stream”.
+            loadWebPlayer(catalog)
         }
     }
 
