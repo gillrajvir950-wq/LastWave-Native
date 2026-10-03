@@ -69,33 +69,28 @@ final class PlayerStore: ObservableObject {
     func playOnline(_ catalog: CatalogTrack, queue: [CatalogTrack] = []) async {
         if !queue.isEmpty { onlineQueue = queue }
         isLoading = true; errorMessage = nil
-        defer { isLoading = false }
         let defaults = UserDefaults.standard
         let addonURL = defaults.string(forKey: "lossless.addonURL") ?? ""
         let addonSecret = defaults.string(forKey: "lossless.addonSecret") ?? ""
         let preference = defaults.string(forKey: "lossless.quality") ?? "lossless"
-        var stream: ResolvedAudioStream?
-        var resolverError: String?
+
+        // Use the local lossless addon when configured. Otherwise start the
+        // authenticated WebView player immediately; waiting for InnerTube/Piped
+        // URL extraction first caused 15-second delays and stale stream errors.
         if !addonURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             do {
-                stream = try await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
-                                                                       secret: addonSecret, quality: preference)
-            } catch { resolverError = error.localizedDescription }
+                let stream = try await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
+                                                                            secret: addonSecret, quality: preference)
+                var track = catalog.playbackTrack; track.sourceQuality = stream.quality
+                loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
+                isLoading = false
+                return
+            } catch {
+                // If the optional addon is unavailable, continue with WebView.
+            }
         }
-        if stream == nil {
-            do {
-                stream = try await YouTubeMusicService.shared.resolve(catalog)
-            } catch { resolverError = error.localizedDescription }
-        }
-        if let stream {
-            var track = catalog.playbackTrack; track.sourceQuality = stream.quality
-            loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
-        } else {
-            // Direct stream extraction is brittle. Use the already-authenticated
-            // hidden WKWebView player as the final playback path instead of
-            // stopping with “No playable audio stream”.
-            loadWebPlayer(catalog)
-        }
+        loadWebPlayer(catalog)
+        isLoading = false
     }
 
     func playNext() {
