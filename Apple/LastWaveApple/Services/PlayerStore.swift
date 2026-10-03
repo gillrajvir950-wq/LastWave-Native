@@ -67,32 +67,47 @@ final class PlayerStore: ObservableObject {
     }
 
     func playOnline(_ catalog: CatalogTrack, queue: [CatalogTrack] = []) async {
-        if !queue.isEmpty { onlineQueue = queue }
-        isLoading = true; errorMessage = nil
+        if !queue.isEmpty {
+            onlineQueue = queue
+        }
+
+        isLoading = true
+        errorMessage = nil
+
         let defaults = UserDefaults.standard
         let addonURL = defaults.string(forKey: "lossless.addonURL") ?? ""
         let addonSecret = defaults.string(forKey: "lossless.addonSecret") ?? ""
-        let preference = defaults.string(forKey: "lossless.quality") ?? "lossless"
+        let quality = defaults.string(forKey: "lossless.quality") ?? "lossless"
 
-        // Use the local lossless addon when configured. Otherwise start the
-        // authenticated WebView player immediately; waiting for InnerTube/Piped
-        // URL extraction first caused 15-second delays and stale stream errors.
         if !addonURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             do {
-                let stream = try await LosslessAddonService.shared.resolve(catalog, baseURL: addonURL,
-                                                                            secret: addonSecret, quality: preference)
-                var track = catalog.playbackTrack; track.sourceQuality = stream.quality
-                loadRemote(track, url: stream.url, headers: stream.headers, autoplay: true)
+                let stream = try await LosslessAddonService.shared.resolve(
+                    catalog,
+                    baseURL: addonURL,
+                    secret: addonSecret,
+                    quality: quality
+                )
+
+                var track = catalog.playbackTrack
+                track.sourceQuality = stream.quality
+
+                loadRemote(
+                    track,
+                    url: stream.url,
+                    headers: stream.headers,
+                    autoplay: true
+                )
+
                 isLoading = false
                 return
             } catch {
-                // If the optional addon is unavailable, continue with WebView.
+                // WebView fallback below
             }
         }
+
         loadWebPlayer(catalog)
         isLoading = false
     }
-
     func playNext() {
         if let current, current.isRemote, !onlineQueue.isEmpty {
             let next: CatalogTrack?
